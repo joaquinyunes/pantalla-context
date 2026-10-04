@@ -1,9 +1,13 @@
 import {
+  CHANGE_RATIO,
+  changeRatio,
+  decideWatch,
   fitSize,
-  frameDifference,
   isRegionTooSmall,
   luminance,
+  MAX_SETTLE_MS,
   normalizeRect,
+  SETTLED_RATIO,
   toSourceRect,
 } from "/capture.js";
 
@@ -22,9 +26,13 @@ const CATEGORY_LABELS = {
   other: "Otro",
 };
 const CONFIDENCE_LABELS = { low: "confianza baja", medium: "confianza media", high: "confianza alta" };
-// Errores tras los cuales seguir en automático no tiene sentido.
-const FATAL_CODES = new Set(["missing_api_key", "upstream_auth", "upstream_bad_request", "bad_host"]);
-const CHANGE_THRESHOLD = 0.02;
+const COST_LABELS = { "free-local": "gratis · local", "free-tier": "gratis (con límites)", paid: "de pago" };
+// Errores tras los cuales seguir vigilando no tiene sentido: hace falta que el usuario actúe.
+const FATAL_CODES = new Set(["upstream_auth", "upstream_bad_request", "model_missing", "bad_host"]);
+const WATCH_TICK_MS = 1000; // cada lectura es una miniatura de 32x18: coste casi nulo
+const BACKOFF_MS = 15_000; // respiro tras un error
+const RATE_LIMIT_BACKOFF_MS = 30_000;
+const JPEG_QUALITY = 0.8;
 const MAX_HISTORY = 20;
 const SETTINGS_KEY = "pantalla-contexto:settings";
 
@@ -44,6 +52,8 @@ const els = {
   analyzeBtn: $("analyzeBtn"),
   autoCheck: $("autoCheck"),
   intervalSelect: $("intervalSelect"),
+  heartbeatSelect: $("heartbeatSelect"),
+  backendInfo: $("backendInfo"),
   changesCheck: $("changesCheck"),
   publishCheck: $("publishCheck"),
   status: $("status"),
@@ -67,10 +77,10 @@ const els = {
 
 const state = {
   stream: null,
+  maxSide: 1568, // lo fija el analizador (los modelos locales prefieren imágenes pequeñas)
   selection: null, // rectángulo normalizado, o null = pantalla completa
   selecting: false,
   busy: false,
-  autoTimer: null,
   lastThumb: null, // miniatura del último fotograma analizado, para detectar cambios
   promptHistory: [], // análisis previos que se mandan al modelo para el campo "changes"
   history: [], // lo que se muestra en el panel de historial
@@ -96,6 +106,7 @@ function saveSettings() {
         language: els.languageSelect.value,
         note: els.noteInput.value,
         interval: els.intervalSelect.value,
+        heartbeat: els.heartbeatSelect.value,
         onlyChanges: els.changesCheck.checked,
         publish: els.publishCheck.checked,
       }),
@@ -154,7 +165,7 @@ async function startShare() {
   }
   let stream;
   try {
-    stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 5 }, audio: false });
+    stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 2, max: 5 } }, audio: false });
   } catch (err) {
     setStatus(
       err.name === "NotAllowedError" ? "Cancelaste el permiso para compartir pantalla." : `No se pudo capturar la pantalla: ${err.message}`,
@@ -178,8 +189,7 @@ function stopShare() {
   state.stream = null;
   els.video.srcObject = null;
   state.selecting = false;
-  state.lastThumb = null;
-  state.promptHistory = [];
+  resetBaseline();
   syncControls();
   if (!state.busy) setStatus("Dejaste de compartir la pantalla.");
 }
@@ -221,11 +231,18 @@ function pointerToNormalized(e) {
   };
 }
 
+// Olvida lo analizado antes (miniatura base e historial del prompt): lo siguiente se analiza de cero.
+function resetBaseline() {
+  state.lastThumb = null;
+  state.promptHistory = [];
+  watch.prevThumb = null;
+  watch.changedSince = null;
+}
+
 function resetSelection() {
   state.selection = null;
   state.selecting = false;
-  state.lastThumb = null;
-  state.promptHistory = [];
+  resetBaseline();
   drawSelection();
 }
 
@@ -264,8 +281,7 @@ els.canvas.addEventListener("pointerup", (e) => {
   } else {
     state.selection = rect;
     state.selecting = false;
-    state.lastThumb = null;
-    state.promptHistory = [];
+    resetBaseline();
     setStatus("Zona elegida. Pulsa «Analizar ahora».");
   }
   drawSelection();
@@ -285,24 +301,33 @@ els.video.addEventListener("loadedmetadata", () => {
 
 // ---------- captura ----------
 
-function captureFrame() {
+const tinyCanvas = document.createElement("canvas");
+tinyCanvas.width = 32;
+tinyCanvas.height = 18;
+const tinyCtx = tinyCanvas.getContext("2d", { willReadFrequently: true });
+
+// Lectura barata (miniatura 32x18 en gris). Es lo único que se hace en cada pulso de vigilancia.
+function sampleThumb() {
+  const { videoWidth, videoHeight } = els.video;
+  if (!videoWidth || !videoHeight) return null;
+  const src = toSourceRect(state.selection, videoWidth, videoHeight);
+  if (src.w < 1 || src.h < 1) return null;
+  tinyCtx.drawImage(els.video, src.x, src.y, src.w, src.h, 0, 0, tinyCanvas.width, tinyCanvas.height);
+  return luminance(tinyCtx.getImageData(0, 0, tinyCanvas.width, tinyCanvas.height).data);
+}
+
+// Recorte + reducción + JPEG. Es lo caro, así que solo se hace cuando de verdad se va a analizar.
+function encodeFrame() {
   const { videoWidth, videoHeight } = els.video;
   if (!videoWidth || !videoHeight) throw new Error("El vídeo todavía no está listo.");
   const src = toSourceRect(state.selection, videoWidth, videoHeight);
   if (isRegionTooSmall(src)) throw new Error("La zona elegida es demasiado pequeña.");
 
-  const out = fitSize(src.w, src.h);
+  const out = fitSize(src.w, src.h, state.maxSide);
   const canvas = document.createElement("canvas");
   canvas.width = out.width;
   canvas.height = out.height;
   canvas.getContext("2d").drawImage(els.video, src.x, src.y, src.w, src.h, 0, 0, out.width, out.height);
-
-  const tiny = document.createElement("canvas");
-  tiny.width = 32;
-  tiny.height = 18;
-  const tinyCtx = tiny.getContext("2d", { willReadFrequently: true });
-  tinyCtx.drawImage(canvas, 0, 0, tiny.width, tiny.height);
-  const thumb = luminance(tinyCtx.getImageData(0, 0, tiny.width, tiny.height).data);
 
   const preview = document.createElement("canvas");
   const previewSize = fitSize(src.w, src.h, 320);
@@ -310,29 +335,22 @@ function captureFrame() {
   preview.height = previewSize.height;
   preview.getContext("2d").drawImage(canvas, 0, 0, preview.width, preview.height);
 
-  return {
-    image: canvas.toDataURL("image/jpeg", 0.85),
-    thumb,
-    preview: preview.toDataURL("image/jpeg", 0.7),
-  };
+  return { image: canvas.toDataURL("image/jpeg", JPEG_QUALITY), preview: preview.toDataURL("image/jpeg", 0.7) };
 }
 
 // ---------- análisis ----------
 
-async function analyze({ skipUnchanged }) {
+async function analyze() {
   if (state.busy || !state.stream) return { ok: false };
 
   let frame;
+  let thumb;
   try {
-    frame = captureFrame();
+    thumb = sampleThumb();
+    frame = encodeFrame();
   } catch (err) {
     setStatus(err.message, "error");
     return { ok: false };
-  }
-
-  if (skipUnchanged && state.lastThumb && frameDifference(state.lastThumb, frame.thumb) < CHANGE_THRESHOLD) {
-    setStatus("Sin cambios en la imagen; análisis omitido.");
-    return { ok: true, skipped: true };
   }
 
   state.busy = true;
@@ -363,13 +381,14 @@ async function analyze({ skipUnchanged }) {
       return { ok: false };
     }
 
-    state.lastThumb = frame.thumb;
+    state.lastThumb = thumb;
     state.promptHistory = [...state.promptHistory, { title: body.context.title, summary: body.context.summary }].slice(-3);
     addToHistory({ context: body.context, meta: body.meta, preview: frame.preview, at: new Date() });
     setStatus(`Listo en ${(body.meta.elapsed_ms / 1000).toFixed(1)} s.`);
     return { ok: true };
   } catch (err) {
     setStatus(err.message, "error");
+    if (err.code === "no_backend") refreshBackend();
     return { ok: false, fatal: FATAL_CODES.has(err.code), code: err.code };
   } finally {
     state.busy = false;
@@ -446,46 +465,91 @@ function renderHistory() {
   );
 }
 
-// ---------- modo automático ----------
+// ---------- vigilancia automática ----------
+// Cada segundo se lee una miniatura (casi gratis). Solo cuando la imagen cambió, se quedó quieta y pasó
+// la separación mínima se codifica y se envía al analizador. Así el consumo en reposo es mínimo.
+
+const watch = { timer: null, prevThumb: null, changedSince: null, lastEnd: 0, notBefore: 0, mode: "" };
+
+function setWatchStatus(mode, text) {
+  if (watch.mode === mode) return;
+  watch.mode = mode;
+  setStatus(text);
+}
+
+async function watchTick() {
+  if (!state.stream) return;
+  const thumb = sampleThumb();
+  if (!thumb) return;
+
+  const now = Date.now();
+  const onlyChanges = els.changesCheck.checked;
+  const hasBaseline = state.lastThumb !== null;
+  const differs = hasBaseline && changeRatio(state.lastThumb, thumb) >= CHANGE_RATIO;
+  // Sin "solo si cambia", se analiza a intervalos fijos como antes: todo cuenta como cambio y ya quieto.
+  const changed = onlyChanges ? differs : true;
+  const settled = onlyChanges ? watch.prevThumb !== null && changeRatio(watch.prevThumb, thumb) < SETTLED_RATIO : true;
+  watch.prevThumb = thumb;
+  if (!changed) watch.changedSince = null;
+  else if (watch.changedSince === null) watch.changedSince = now;
+
+  const action = decideWatch({
+    busy: state.busy,
+    now,
+    notBefore: watch.notBefore,
+    lastEnd: watch.lastEnd,
+    minGapMs: Number(els.intervalSelect.value) * 1000,
+    heartbeatMs: Number(els.heartbeatSelect.value) * 1000,
+    hasBaseline,
+    changed,
+    settled,
+    changedSince: watch.changedSince,
+    maxSettleMs: MAX_SETTLE_MS,
+  });
+
+  if (action === "analyze") {
+    watch.changedSince = null;
+    const result = await analyze();
+    watch.lastEnd = Date.now();
+    watch.mode = "";
+    if (result.fatal) return stopAuto();
+    if (!result.ok) {
+      const slow = result.code === "rate_limited" || result.code === "busy";
+      watch.notBefore = watch.lastEnd + (slow ? RATE_LIMIT_BACKOFF_MS : BACKOFF_MS);
+    }
+    return;
+  }
+  if (state.busy || now < watch.notBefore) return; // no pisar el mensaje de «Analizando…» ni el de un error
+  if (action === "wait") setWatchStatus("wait", "Cambio detectado: esperando para analizar…");
+  else setWatchStatus("idle", "Vigilando: sin cambios.");
+}
+
+function startAuto() {
+  watch.lastEnd = 0;
+  watch.notBefore = 0;
+  watch.mode = "";
+  watchTick();
+  watch.timer = setInterval(watchTick, WATCH_TICK_MS);
+}
 
 function stopAuto() {
-  clearTimeout(state.autoTimer);
-  state.autoTimer = null;
+  clearInterval(watch.timer);
+  watch.timer = null;
   els.autoCheck.checked = false;
 }
 
-function scheduleAuto(delayMs) {
-  clearTimeout(state.autoTimer);
-  state.autoTimer = setTimeout(runAuto, delayMs);
-}
-
-async function runAuto() {
-  if (!els.autoCheck.checked || !state.stream) return;
-  const intervalMs = Number(els.intervalSelect.value) * 1000;
-  const result = await analyze({ skipUnchanged: els.changesCheck.checked });
-  if (result.fatal) {
-    stopAuto();
-    return;
-  }
-  // Si la API limita las peticiones, damos un respiro extra antes de reintentar.
-  scheduleAuto(result.code === "rate_limited" ? intervalMs + 30_000 : intervalMs);
-}
-
-els.autoCheck.addEventListener("change", () => {
-  if (els.autoCheck.checked) runAuto();
-  else stopAuto();
-});
+els.autoCheck.addEventListener("change", () => (els.autoCheck.checked ? startAuto() : stopAuto()));
 
 // ---------- eventos varios ----------
 
 els.shareBtn.addEventListener("click", () => (state.stream ? stopShare() : startShare()));
-els.analyzeBtn.addEventListener("click", () => analyze({ skipUnchanged: false }));
+els.analyzeBtn.addEventListener("click", () => analyze());
 
 els.modeSelect.addEventListener("change", () => {
-  state.promptHistory = [];
+  resetBaseline();
   saveSettings();
 });
-for (const el of [els.languageSelect, els.noteInput, els.intervalSelect, els.changesCheck, els.publishCheck]) {
+for (const el of [els.languageSelect, els.noteInput, els.intervalSelect, els.heartbeatSelect, els.changesCheck, els.publishCheck]) {
   el.addEventListener("change", saveSettings);
 }
 
@@ -505,11 +569,32 @@ els.copyOverlayBtn.addEventListener("click", () =>
 
 // ---------- arranque ----------
 
+let backendTimer = null;
+
+// Muestra qué analizador hay y si está listo. Mientras no lo esté, vuelve a mirar cada pocos segundos
+// para que el aviso desaparezca solo cuando el usuario arranque Ollama o configure la clave.
+async function refreshBackend() {
+  clearTimeout(backendTimer);
+  try {
+    const { backend } = await (await fetch("/api/config")).json();
+    state.maxSide = backend.maxSide ?? state.maxSide;
+    const cost = COST_LABELS[backend.cost] ?? backend.cost;
+    els.backendInfo.textContent = `Analizador: ${backend.name} · ${backend.model} · ${cost}`;
+    els.backendInfo.classList.toggle("ok", backend.ready);
+    showBanner(backend.ready ? "" : backend.hint ?? "No hay analizador disponible.");
+    if (!backend.ready) backendTimer = setTimeout(refreshBackend, 5000);
+  } catch {
+    showBanner("No se pudo contactar con el servidor local.");
+    backendTimer = setTimeout(refreshBackend, 5000);
+  }
+}
+
 async function init() {
   const settings = loadSettings();
   els.noteInput.value = settings.note ?? "";
   els.languageSelect.value = settings.language ?? "es";
   els.intervalSelect.value = settings.interval ?? "10";
+  els.heartbeatSelect.value = settings.heartbeat ?? "0";
   els.changesCheck.checked = settings.onlyChanges ?? true;
   els.publishCheck.checked = settings.publish ?? true;
 
@@ -524,12 +609,10 @@ async function init() {
       }),
     );
     els.modeSelect.value = config.modes.some((m) => m.id === settings.mode) ? settings.mode : "auto";
-    if (!config.credentialsConfigured) {
-      showBanner("Falta la API key de Anthropic: define ANTHROPIC_API_KEY (ver .env.example) y reinicia el servidor.");
-    }
   } catch {
-    showBanner("No se pudo contactar con el servidor local.");
+    // refreshBackend() mostrará el aviso.
   }
+  await refreshBackend();
   syncControls();
 }
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { fitSize, frameDifference, isRegionTooSmall, luminance, normalizeRect, toSourceRect } from "../public/capture.js";
+import { changeRatio, decideWatch, fitSize, isRegionTooSmall, luminance, normalizeRect, toSourceRect } from "../public/capture.js";
 
 test("normalizeRect ordena las esquinas y recorta a 0..1", () => {
   assert.deepEqual(normalizeRect({ x: 0.8, y: 0.9 }, { x: 0.2, y: 0.1 }), { x: 0.2, y: 0.1, w: 0.6000000000000001, h: 0.8 });
@@ -29,13 +29,47 @@ test("fitSize reduce conservando proporción y nunca amplía", () => {
   assert.deepEqual(fitSize(1000, 1, 100), { width: 100, height: 1 });
 });
 
-test("frameDifference: iguales = 0, opuestos = 1, tamaños distintos = 1", () => {
-  const black = new Uint8Array(100);
-  const white = new Uint8Array(100).fill(255);
-  assert.equal(frameDifference(black, black), 0);
-  assert.equal(frameDifference(black, white), 1);
-  assert.equal(frameDifference(black, new Uint8Array(50)), 1);
-  assert.equal(frameDifference(null, black), 1);
+test("changeRatio: fracción de celdas que cambian más que el umbral", () => {
+  const base = new Uint8Array(100).fill(100);
+  assert.equal(changeRatio(base, base), 0);
+  const tenCells = base.map((v, i) => (i < 10 ? v + 50 : v));
+  assert.equal(changeRatio(base, tenCells), 0.1);
+  const noise = base.map((v, i) => v + (i % 2 ? 10 : -10)); // ruido de compresión: no cuenta
+  assert.equal(changeRatio(base, noise), 0);
+  assert.equal(changeRatio(base, new Uint8Array(50)), 1, "tamaños distintos = todo cambió");
+  assert.equal(changeRatio(null, base), 1);
+});
+
+const WATCH = { busy: false, now: 100_000, notBefore: 0, lastEnd: 80_000, minGapMs: 10_000, heartbeatMs: 0, hasBaseline: true, changed: false, settled: true, changedSince: null };
+const decide = (over) => decideWatch({ ...WATCH, ...over });
+
+test("decideWatch: sin cambios no hace nada", () => {
+  assert.equal(decide({}), "idle");
+});
+
+test("decideWatch: primer análisis inmediato, salvo ocupado o en respiro tras un error", () => {
+  assert.equal(decide({ hasBaseline: false }), "analyze");
+  assert.equal(decide({ hasBaseline: false, busy: true }), "wait");
+  assert.equal(decide({ hasBaseline: false, notBefore: 100_001 }), "wait");
+});
+
+test("decideWatch: un cambio se analiza cuando la imagen se estabiliza y pasó la separación mínima", () => {
+  assert.equal(decide({ changed: true, settled: true }), "analyze");
+  assert.equal(decide({ changed: true, settled: false, changedSince: 99_000 }), "wait", "sigue moviéndose: esperar");
+  assert.equal(decide({ changed: true, settled: true, lastEnd: 95_000 }), "wait", "demasiado pronto desde el último");
+  assert.equal(decide({ changed: true, busy: true }), "wait");
+});
+
+test("decideWatch: si la imagen nunca se estabiliza se analiza pasado el tiempo máximo", () => {
+  assert.equal(decide({ changed: true, settled: false, changedSince: 91_999 }), "analyze");
+  assert.equal(decide({ changed: true, settled: false, changedSince: 92_001 }), "wait");
+  assert.equal(decide({ changed: true, settled: false, changedSince: 50_000, maxSettleMs: 1000 }), "analyze");
+});
+
+test("decideWatch: el refresco periódico solo actúa si está activado y venció", () => {
+  assert.equal(decide({ heartbeatMs: 60_000 }), "idle");
+  assert.equal(decide({ heartbeatMs: 60_000, lastEnd: 30_000 }), "analyze");
+  assert.equal(decide({ heartbeatMs: 0, lastEnd: 0 }), "idle");
 });
 
 test("luminance pondera los canales RGB", () => {

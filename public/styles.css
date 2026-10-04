@@ -50,6 +50,8 @@ body {
 }
 .top h1 { margin: 0; font-size: 1.4rem; letter-spacing: -0.01em; }
 .top p { margin: 2px 0 0; }
+.backend { font-size: 0.85rem; }
+.backend.ok { color: var(--accent); }
 
 .banner {
   max-width: 1400px;
@@ -116,8 +118,10 @@ body {
   justify-content: center;
   overflow: hidden;
 }
-.placeholder { text-align: center; padding: 40px 16px; color: var(--text); }
+/* El visor es siempre negro, en tema claro u oscuro: su texto tiene colores fijos. */
+.placeholder { text-align: center; padding: 40px 16px; color: #e8edf3; }
 .placeholder p { margin: 4px 0; }
+.placeholder .muted { color: #9aa7b6; }
 
 .frame { position: relative; display: inline-block; max-width: 100%; line-height: 0; }
 .frame video { display: block; max-width: 100%; max-height: 62vh; width: auto; height: auto; }

@@ -12,6 +12,7 @@
     <div>
       <h1>Pantalla Contexto</h1>
       <p class="muted">Comparte tu pantalla, elige una zona y obtén el contexto de lo que está pasando.</p>
+      <p id="backendInfo" class="backend muted">Comprobando analizador…</p>
     </div>
     <div class="top-actions">
       <button id="copyOverlayBtn" class="btn small" type="button" title="Copia la URL para usarla como Fuente de navegador en OBS">Copiar URL del overlay (OBS)</button>
@@ -60,8 +61,9 @@
 
       <div class="controls">
         <button id="analyzeBtn" class="btn primary" type="button" disabled>Analizar ahora</button>
-        <label class="check"><input id="autoCheck" type="checkbox" disabled> Automático cada
-          <select id="intervalSelect" aria-label="Intervalo de análisis automático">
+        <label class="check"><input id="autoCheck" type="checkbox" disabled> Vigilar automáticamente</label>
+        <label class="check">como mucho cada
+          <select id="intervalSelect" aria-label="Separación mínima entre análisis">
             <option value="5">5 s</option>
             <option value="10" selected>10 s</option>
             <option value="20">20 s</option>
@@ -69,11 +71,21 @@
             <option value="60">60 s</option>
           </select>
         </label>
-        <label class="check"><input id="changesCheck" type="checkbox" checked> Solo si la imagen cambió</label>
+        <label class="check">refrescar aunque no cambie
+          <select id="heartbeatSelect" aria-label="Refresco periódico">
+            <option value="0" selected>nunca</option>
+            <option value="60">cada 1 min</option>
+            <option value="120">cada 2 min</option>
+            <option value="300">cada 5 min</option>
+          </select>
+        </label>
+      </div>
+      <div class="controls">
+        <label class="check"><input id="changesCheck" type="checkbox" checked> Solo analizar cuando algo cambie (ahorra CPU y cuota)</label>
         <label class="check"><input id="publishCheck" type="checkbox" checked> Publicar en el overlay</label>
       </div>
 
-      <p class="privacy muted">Cada análisis envía la imagen (solo la zona elegida) a la API de Anthropic. No se guarda en el servidor. Evita incluir contraseñas, datos bancarios o información privada en la zona.</p>
+      <p class="privacy muted">Cada análisis envía la imagen (solo la zona elegida) al analizador. Con un motor local no sale de tu red; con uno en la nube sí sale. No se guarda en el servidor. Evita incluir contraseñas, datos bancarios o información privada en la zona.</p>
     </section>
 
     <section class="result" aria-label="Contexto detectado">

@@ -17,6 +17,8 @@ const CONTEXT = {
   uncertain: [],
 };
 
+const INFO = { ready: true, name: "ollama", model: "modelo-prueba", cost: "free-local", local: true, maxSide: 768, hint: null };
+
 let calls = [];
 let nextOutcome;
 let server;
@@ -37,13 +39,14 @@ const post = (body, headers = {}) =>
 
 before(async () => {
   const app = createApp({
-    analyze: async (req) => {
-      calls.push(req);
-      if (nextOutcome instanceof Error) throw nextOutcome;
-      return nextOutcome;
+    backend: {
+      info: async () => INFO,
+      analyze: async (req) => {
+        calls.push(req);
+        if (nextOutcome instanceof Error) throw nextOutcome;
+        return nextOutcome;
+      },
     },
-    credentialsConfigured: true,
-    model: "modelo-prueba",
     now: () => new Date("2026-01-01T00:00:00Z"),
   });
   server = await listen(app);
@@ -52,10 +55,9 @@ before(async () => {
 
 after(() => server.close());
 
-test("GET /api/config lista modos y modelo", async () => {
+test("GET /api/config describe el analizador y lista modos", async () => {
   const body = await (await fetch(`${base}/api/config`)).json();
-  assert.equal(body.model, "modelo-prueba");
-  assert.equal(body.credentialsConfigured, true);
+  assert.deepEqual(body.backend, INFO);
   assert.ok(body.modes.some((m) => m.id === "casino"));
   assert.deepEqual(body.languages, ["es", "en"]);
 });
@@ -152,9 +154,10 @@ test("rechaza un Host que no es localhost (DNS rebinding)", async () => {
   assert.equal(status, 403);
 });
 
-test("sin credenciales responde 503 y no llama al analizador", async () => {
+test("si el analizador no está listo responde 503 con la pista y no lo llama", async () => {
   calls = [];
-  const s = await listen(createApp({ analyze: async () => assert.fail("no debe llamarse"), credentialsConfigured: false, model: "m" }));
+  const backend = { info: async () => ({ ...INFO, ready: false, hint: "Instala Ollama" }), analyze: async () => assert.fail("no debe llamarse") };
+  const s = await listen(createApp({ backend }));
   try {
     const res = await fetch(`http://127.0.0.1:${s.address().port}/api/analyze`, {
       method: "POST",
@@ -162,7 +165,8 @@ test("sin credenciales responde 503 y no llama al analizador", async () => {
       body: JSON.stringify({ image: IMG }),
     });
     assert.equal(res.status, 503);
-    assert.equal((await res.json()).error, "missing_api_key");
+    const body = await res.json();
+    assert.deepEqual([body.error, body.message], ["no_backend", "Instala Ollama"]);
   } finally {
     s.close();
   }

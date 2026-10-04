@@ -1,12 +1,11 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertAllowedHost, readJsonBody, SECURITY_HEADERS, sendJson, withErrorHandling } from "./http.js";
 import { LANGUAGES, MODES } from "./modes.js";
 import { HttpError, parseAnalyzeRequest } from "./validate.js";
 
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
-const MAX_BODY_BYTES = 6 * 1024 * 1024;
-const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 const CONTENT_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -17,66 +16,19 @@ const CONTENT_TYPES = {
 
 const PAGES = { "/": "index.html", "/overlay": "overlay.html" };
 
-const SECURITY_HEADERS = {
-  "x-content-type-options": "nosniff",
-  "referrer-policy": "no-referrer",
-  "cache-control": "no-store",
-  "content-security-policy":
-    "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; frame-ancestors 'none'",
-};
-
-function sendJson(res, status, body, extraHeaders = {}) {
-  res.writeHead(status, { ...SECURITY_HEADERS, "content-type": "application/json; charset=utf-8", ...extraHeaders });
-  res.end(JSON.stringify(body));
-}
-
-// Se corta la lectura de un cuerpo demasiado grande: hay que cerrar la conexión tras responder,
-// porque el cliente aún puede estar enviando y ese socket no se puede reutilizar.
-function bodyTooLarge() {
-  const err = new HttpError(413, "body_too_large", "La petición es demasiado grande.");
-  err.closeConnection = true;
-  return err;
-}
-
-async function readJsonBody(req) {
-  const type = req.headers["content-type"] ?? "";
-  if (!type.toLowerCase().startsWith("application/json")) {
-    throw new HttpError(415, "unsupported_media_type", "Content-Type debe ser application/json.");
-  }
-  if (Number(req.headers["content-length"]) > MAX_BODY_BYTES) throw bodyTooLarge();
-  const chunks = [];
-  let size = 0;
-  for await (const chunk of req) {
-    size += chunk.length;
-    if (size > MAX_BODY_BYTES) throw bodyTooLarge();
-    chunks.push(chunk);
-  }
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
-  } catch {
-    throw new HttpError(400, "bad_json", "El cuerpo no es JSON válido.");
-  }
-}
-
-// Construye el manejador HTTP. Todo lo externo llega inyectado para poder probarlo sin red:
-//   analyze               función (petición validada) -> resultado de Claude
-//   credentialsConfigured false -> /api/analyze responde 503 sin llamar a Claude
-//   loopbackOnly          true -> solo acepta Host de localhost (evita DNS rebinding)
-export function createApp({ analyze, credentialsConfigured, model, loopbackOnly = true, now = () => new Date() }) {
+// Servidor del visor: sirve la interfaz y el overlay, y reenvía las capturas al analizador.
+//   backend      { info() -> {ready, name, model, cost, local, maxSide, hint}, analyze(req) }
+//   loopbackOnly true -> solo acepta Host de localhost (evita DNS rebinding)
+export function createApp({ backend, loopbackOnly = true, now = () => new Date() }) {
   let latest = null; // último contexto publicado, solo texto (lo lee el overlay de OBS)
 
   async function handle(req, res) {
     const url = new URL(req.url ?? "/", "http://localhost");
-
-    if (loopbackOnly) {
-      const hostname = (req.headers.host ?? "").replace(/:\d+$/, "").toLowerCase();
-      if (!LOOPBACK_HOSTS.has(hostname)) throw new HttpError(403, "bad_host", "Host no permitido.");
-    }
+    assertAllowedHost(req, loopbackOnly);
 
     if (req.method === "GET" && url.pathname === "/api/config") {
       return sendJson(res, 200, {
-        model,
-        credentialsConfigured,
+        backend: await backend.info(),
         modes: Object.entries(MODES).map(([id, m]) => ({ id, label: m.label })),
         languages: Object.keys(LANGUAGES),
       });
@@ -87,12 +39,11 @@ export function createApp({ analyze, credentialsConfigured, model, loopbackOnly 
     }
 
     if (req.method === "POST" && url.pathname === "/api/analyze") {
-      if (!credentialsConfigured) {
-        throw new HttpError(503, "missing_api_key", "Falta ANTHROPIC_API_KEY en el servidor.");
-      }
+      const info = await backend.info();
+      if (!info.ready) throw new HttpError(503, "no_backend", info.hint ?? "No hay analizador disponible.");
       const request = parseAnalyzeRequest(await readJsonBody(req));
       const started = Date.now();
-      const outcome = await analyze(request);
+      const outcome = await backend.analyze(request);
       const elapsed_ms = Date.now() - started;
       if (outcome.refused) {
         return sendJson(res, 200, { refused: true, reason: outcome.reason, elapsed_ms });
@@ -125,16 +76,5 @@ export function createApp({ analyze, credentialsConfigured, model, loopbackOnly 
     throw new HttpError(404, "not_found", "No encontrado.");
   }
 
-  return async (req, res) => {
-    try {
-      await handle(req, res);
-    } catch (err) {
-      if (err instanceof HttpError) {
-        const headers = err.closeConnection ? { connection: "close" } : {};
-        return sendJson(res, err.status, { error: err.code, message: err.message }, headers);
-      }
-      console.error("Error inesperado:", err);
-      sendJson(res, 500, { error: "internal", message: "Error interno del servidor." });
-    }
-  };
+  return withErrorHandling(handle);
 }

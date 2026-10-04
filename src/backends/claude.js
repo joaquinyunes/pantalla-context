@@ -1,8 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { buildUserText, RESULT_SCHEMA, SYSTEM_PROMPT } from "./prompt.js";
-import { HttpError, normalizeResult } from "./validate.js";
-
-export const DEFAULT_MODEL = "claude-opus-5-5";
+import { buildUserText, PROFILES } from "../prompt.js";
+import { HttpError, normalizeResult } from "../validate.js";
 
 // Traduce los errores del SDK a errores HTTP propios, de lo más específico a lo más general.
 function toHttpError(err) {
@@ -29,15 +27,17 @@ function toHttpError(err) {
   return err;
 }
 
-// Crea la función que manda una captura a Claude y devuelve el contexto estructurado.
+// Motor de pago: mejor calidad de lectura y razonamiento, sin carga local.
 //   fallbacks: si Claude rechaza la petición por política, la API la reintenta en otro modelo.
-export function createAnalyzer({ client, model = DEFAULT_MODEL, effort = "low", fallbacks = true }) {
-  return async function analyze(req) {
+export function createClaudeBackend({ client, model, effort = "low", fallbacks = true, configured = true, maxSide = 1568 }) {
+  const { system, schema } = PROFILES.full;
+
+  async function analyze(req) {
     const params = {
       model,
       max_tokens: 4096, // incluye los tokens de razonamiento
-      system: SYSTEM_PROMPT,
-      output_config: { effort, format: { type: "json_schema", schema: RESULT_SCHEMA } },
+      system,
+      output_config: { effort, format: { type: "json_schema", schema } },
       messages: [
         {
           role: "user",
@@ -79,5 +79,25 @@ export function createAnalyzer({ client, model = DEFAULT_MODEL, effort = "low", 
       model: response.model,
       usage: { input_tokens: response.usage.input_tokens, output_tokens: response.usage.output_tokens },
     };
+  }
+
+  return {
+    name: "claude",
+    cost: "paid",
+    local: false,
+    profile: "full",
+    maxSide,
+    async info() {
+      return {
+        ready: configured,
+        name: "claude",
+        model,
+        cost: "paid",
+        local: false,
+        maxSide,
+        hint: configured ? null : "Define ANTHROPIC_API_KEY para usar Claude.",
+      };
+    },
+    analyze,
   };
 }

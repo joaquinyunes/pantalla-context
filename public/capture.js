@@ -44,10 +44,33 @@ export function luminance(rgba) {
   return out;
 }
 
-// Diferencia media entre dos miniaturas de luminancia, de 0 (iguales) a 1 (opuestas).
-export function frameDifference(a, b) {
+// Fracción de celdas de la miniatura cuya luminancia cambió más de `cellDelta` (0..255).
+// Mide "cuánta pantalla ha cambiado" sin que el ruido de compresión dispare falsas alarmas.
+export function changeRatio(a, b, cellDelta = 24) {
   if (!a || !b || a.length !== b.length) return 1;
-  let total = 0;
-  for (let i = 0; i < a.length; i++) total += Math.abs(a[i] - b[i]);
-  return total / (a.length * 255);
+  let changed = 0;
+  for (let i = 0; i < a.length; i++) if (Math.abs(a[i] - b[i]) > cellDelta) changed++;
+  return changed / a.length;
+}
+
+// Umbrales de la vigilancia (sobre una miniatura de 32x18 = 576 celdas).
+export const CHANGE_RATIO = 0.02; // desde ~12 celdas distintas se considera que algo cambió
+export const SETTLED_RATIO = 0.005; // por debajo de ~3 celdas entre dos lecturas, la imagen está quieta
+export const MAX_SETTLE_MS = 8000; // si nunca se queda quieta (reels, animaciones), se analiza igualmente
+
+// Decide qué hacer en cada lectura de la vigilancia: "analyze", "wait" (hay trabajo pendiente) o "idle".
+//   notBefore   no analizar antes de este instante (respiro tras un error)
+//   lastEnd     instante en que terminó el último análisis
+//   minGapMs    separación mínima entre análisis
+//   heartbeatMs refrescar aunque no cambie nada (0 = nunca)
+export function decideWatch({ busy, now, notBefore, lastEnd, minGapMs, heartbeatMs, hasBaseline, changed, settled, changedSince, maxSettleMs = MAX_SETTLE_MS }) {
+  if (busy || now < notBefore) return "wait";
+  if (!hasBaseline) return "analyze";
+  if (changed) {
+    if (now - lastEnd < minGapMs) return "wait";
+    if (!settled && now - (changedSince ?? now) < maxSettleMs) return "wait";
+    return "analyze";
+  }
+  if (heartbeatMs > 0 && now - lastEnd >= heartbeatMs) return "analyze";
+  return "idle";
 }
