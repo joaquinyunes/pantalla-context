@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pantalla Contexto</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>Pantalla Contexto</h1>
+      <p class="muted">Comparte tu pantalla, elige una zona y obtén el contexto de lo que está pasando.</p>
+    </div>
+    <div class="top-actions">
+      <button id="copyOverlayBtn" class="btn small" type="button" title="Copia la URL para usarla como Fuente de navegador en OBS">Copiar URL del overlay (OBS)</button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner" role="alert" hidden></div>
+
+  <main class="layout">
+    <section class="stage" aria-label="Pantalla compartida">
+      <div class="toolbar">
+        <button id="shareBtn" class="btn primary" type="button">Compartir pantalla</button>
+        <button id="selectBtn" class="btn" type="button" disabled>Seleccionar zona</button>
+        <button id="fullBtn" class="btn" type="button" disabled>Pantalla completa</button>
+        <span id="selectionInfo" class="muted" aria-live="polite"></span>
+      </div>
+
+      <div class="viewport">
+        <div id="placeholder" class="placeholder">
+          <p>Aquí verás tu pantalla.</p>
+          <p class="muted">Pulsa «Compartir pantalla» y elige una ventana, pestaña o monitor.</p>
+        </div>
+        <div id="frame" class="frame" hidden>
+          <video id="video" muted playsinline></video>
+          <canvas id="selectionCanvas" aria-label="Arrastra para seleccionar una zona"></canvas>
+        </div>
+      </div>
+
+      <div class="controls">
+        <label class="field">
+          <span>Tipo de contenido</span>
+          <select id="modeSelect"></select>
+        </label>
+        <label class="field">
+          <span>Idioma</span>
+          <select id="languageSelect">
+            <option value="es">Español</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+        <label class="field grow">
+          <span>Pista opcional</span>
+          <input id="noteInput" type="text" maxlength="200" placeholder="p. ej. «estoy en un casino online» o «Champions League»">
+        </label>
+      </div>
+
+      <div class="controls">
+        <button id="analyzeBtn" class="btn primary" type="button" disabled>Analizar ahora</button>
+        <label class="check"><input id="autoCheck" type="checkbox" disabled> Automático cada
+          <select id="intervalSelect" aria-label="Intervalo de análisis automático">
+            <option value="5">5 s</option>
+            <option value="10" selected>10 s</option>
+            <option value="20">20 s</option>
+            <option value="30">30 s</option>
+            <option value="60">60 s</option>
+          </select>
+        </label>
+        <label class="check"><input id="changesCheck" type="checkbox" checked> Solo si la imagen cambió</label>
+        <label class="check"><input id="publishCheck" type="checkbox" checked> Publicar en el overlay</label>
+      </div>
+
+      <p class="privacy muted">Cada análisis envía la imagen (solo la zona elegida) a la API de Anthropic. No se guarda en el servidor. Evita incluir contraseñas, datos bancarios o información privada en la zona.</p>
+    </section>
+
+    <section class="result" aria-label="Contexto detectado">
+      <p id="status" class="status" role="status" aria-live="polite">Sin análisis todavía.</p>
+
+      <article id="card" class="card" hidden>
+        <div class="card-head">
+          <span id="categoryBadge" class="badge"></span>
+          <span id="confidence" class="muted"></span>
+        </div>
+        <h2 id="cardTitle"></h2>
+        <p id="cardSummary" class="summary"></p>
+        <p id="cardChanges" class="changes" hidden></p>
+        <dl id="entities" class="entities"></dl>
+        <div class="chat">
+          <p id="chatLine"></p>
+          <button id="copyChatBtn" class="btn small" type="button">Copiar</button>
+        </div>
+        <details id="uncertainBox" hidden>
+          <summary>No se pudo confirmar</summary>
+          <ul id="uncertainList"></ul>
+        </details>
+        <div class="card-foot">
+          <img id="shot" class="shot" alt="Captura analizada" hidden>
+          <span id="meta" class="muted"></span>
+        </div>
+      </article>
+
+      <section id="historyBox" class="history" hidden>
+        <h3>Historial</h3>
+        <ol id="historyList"></ol>
+      </section>
+    </section>
+  </main>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

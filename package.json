@@ -1,0 +1,15 @@
+{
+  "name": "pantalla-contexto",
+  "version": "0.1.0",
+  "description": "Analizador de pantalla: captura tu pantalla (o una zona) y obtiene el contexto de lo que está pasando con Claude.",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22.9" },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0"
+  }
+}
