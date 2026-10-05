@@ -1,7 +1,7 @@
 // Lee y valida las variables de entorno. Todo lo propio lleva prefijo PANTALLA_;
 // solo se reutilizan los nombres estándar de cada proveedor (ANTHROPIC_API_KEY, GEMINI_API_KEY, OLLAMA_HOST).
 
-export const BACKEND_NAMES = ["auto", "ollama", "gemini", "claude"];
+export const BACKEND_NAMES = ["auto", "ollama", "gemini", "claude", "ocr"];
 const EFFORTS = ["low", "medium", "high", "xhigh", "max"];
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "::1"]);
 
@@ -13,6 +13,25 @@ export function normalizeOllamaHost(raw) {
   if (url.hostname === "0.0.0.0") url.hostname = "127.0.0.1";
   if (!hasScheme && !url.port) url.port = "11434";
   return url.origin;
+}
+
+function httpUrl(raw, name) {
+  try {
+    const url = new URL(raw);
+    if (!/^https?:$/.test(url.protocol)) throw new Error("protocolo");
+    return url;
+  } catch {
+    throw new Error(`${name} no es una URL http(s) válida: "${raw}".`);
+  }
+}
+
+// «eng+spa», «eng,spa» o «eng spa» -> ["eng", "spa"]
+function ocrLangs(raw) {
+  const langs = [...new Set((raw || "eng").split(/[+,\s]+/).filter(Boolean))];
+  if (langs.length === 0 || !langs.every((l) => /^[a-z_]{3,12}$/.test(l))) {
+    throw new Error(`PANTALLA_OCR_LANGS inválido: "${raw}". Usa códigos como eng, spa o eng+spa.`);
+  }
+  return langs;
 }
 
 function int(env, name, fallback, { min, max }) {
@@ -36,15 +55,14 @@ export function loadConfig(env = process.env) {
     throw new Error(`PANTALLA_CLAUDE_EFFORT inválido: "${effort}". Usa uno de: ${EFFORTS.join(", ")}.`);
   }
 
-  let analyzerUrl = null;
-  if (env.PANTALLA_ANALYZER_URL) {
-    try {
-      const url = new URL(env.PANTALLA_ANALYZER_URL);
-      if (!/^https?:$/.test(url.protocol)) throw new Error("protocolo");
-      analyzerUrl = url.origin;
-    } catch {
-      throw new Error(`PANTALLA_ANALYZER_URL no es una URL http(s) válida: "${env.PANTALLA_ANALYZER_URL}".`);
-    }
+  const analyzerUrl = env.PANTALLA_ANALYZER_URL ? httpUrl(env.PANTALLA_ANALYZER_URL, "PANTALLA_ANALYZER_URL").origin : null;
+  const webhookUrl = env.PANTALLA_WEBHOOK_URL ? httpUrl(env.PANTALLA_WEBHOOK_URL, "PANTALLA_WEBHOOK_URL").href : null;
+
+  // «Otra IA»: hacen falta la URL y el modelo juntos; la clave es opcional (servidores locales no la piden).
+  const llmUrl = env.PANTALLA_LLM_URL;
+  const llmModel = env.PANTALLA_LLM_MODEL;
+  if (Boolean(llmUrl) !== Boolean(llmModel)) {
+    throw new Error(`Para usar una IA externa define PANTALLA_LLM_URL y PANTALLA_LLM_MODEL juntas (falta ${llmUrl ? "PANTALLA_LLM_MODEL" : "PANTALLA_LLM_URL"}).`);
   }
 
   const host = env.HOST || "127.0.0.1";
@@ -72,6 +90,22 @@ export function loadConfig(env = process.env) {
       think: think === "0" ? false : null, // solo se envía `think:false` si se pide explícitamente
       timeoutMs: int(env, "PANTALLA_OLLAMA_TIMEOUT_S", 180, { min: 10, max: 1800 }) * 1000,
     },
+    ocr: {
+      langs: ocrLangs(env.PANTALLA_OCR_LANGS),
+      langPath: env.PANTALLA_OCR_LANG_PATH || null,
+      keepAliveMs: int(env, "PANTALLA_OCR_KEEP_ALIVE_S", 60, { min: 1, max: 86400 }) * 1000,
+    },
+    knowledgeFile: env.PANTALLA_KNOWLEDGE_FILE || null,
+    llm: llmUrl
+      ? {
+          baseUrl: httpUrl(llmUrl, "PANTALLA_LLM_URL").href.replace(/\/+$/, ""),
+          model: llmModel,
+          apiKey: env.PANTALLA_LLM_KEY || null,
+          jsonMode: env.PANTALLA_LLM_JSON_MODE !== "0",
+          timeoutMs: int(env, "PANTALLA_LLM_TIMEOUT_S", 60, { min: 5, max: 600 }) * 1000,
+        }
+      : null,
+    webhook: webhookUrl ? { url: webhookUrl, secret: env.PANTALLA_WEBHOOK_SECRET || null } : null,
     gemini: {
       apiKey: env.GEMINI_API_KEY || env.GOOGLE_API_KEY || null,
       model: env.PANTALLA_GEMINI_MODEL || "gemini-flash-lite-latest",

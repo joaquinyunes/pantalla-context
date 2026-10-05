@@ -20,7 +20,13 @@ if (!loopbackOnly && !token) {
 }
 
 // Aquí se ignora PANTALLA_ANALYZER_URL a propósito: este proceso es el analizador, no un cliente.
-const backend = createLocalBackend(config);
+let backend;
+try {
+  backend = createLocalBackend(config);
+} catch (err) {
+  console.error(err.message);
+  process.exit(1);
+}
 
 http.createServer(createAnalyzerService({ backend, token, loopbackOnly })).listen(port, host, async () => {
   console.log(`Pantalla Contexto (analizador) en http://${host}:${port}`);

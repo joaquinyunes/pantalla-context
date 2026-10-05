@@ -78,5 +78,6 @@ export function normalizeResult(raw) {
     changes: text(raw.changes, 300),
     confidence: CONFIDENCE.has(raw.confidence) ? raw.confidence : "low",
     uncertain: list(raw.uncertain, 160, 6),
+    text: text(raw.text, 2000),
   };
 }

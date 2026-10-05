@@ -10,29 +10,17 @@ import {
   SETTLED_RATIO,
   toSourceRect,
 } from "/capture.js";
+import { CATEGORY_LABELS, contextToPrompt } from "/context-format.js";
 
 const $ = (id) => document.getElementById(id);
 
-const CATEGORY_LABELS = {
-  casino: "Casino",
-  sports_betting: "Apuestas deportivas",
-  sports_live: "Deporte en directo",
-  video_game: "Videojuego",
-  streaming: "Streaming",
-  trading: "Trading",
-  video_media: "Vídeo",
-  productivity: "Trabajo",
-  social: "Redes sociales",
-  other: "Otro",
-};
 const CONFIDENCE_LABELS = { low: "confianza baja", medium: "confianza media", high: "confianza alta" };
-const COST_LABELS = { "free-local": "gratis · local", "free-tier": "gratis (con límites)", paid: "de pago" };
+const COST_LABELS = { "free-local": "gratis · local", "free-tier": "gratis (con límites)", paid: "de pago", hybrid: "OCR local + IA externa (solo texto)" };
 // Errores tras los cuales seguir vigilando no tiene sentido: hace falta que el usuario actúe.
 const FATAL_CODES = new Set(["upstream_auth", "upstream_bad_request", "model_missing", "bad_host"]);
 const WATCH_TICK_MS = 1000; // cada lectura es una miniatura de 32x18: coste casi nulo
 const BACKOFF_MS = 15_000; // respiro tras un error
 const RATE_LIMIT_BACKOFF_MS = 30_000;
-const JPEG_QUALITY = 0.8;
 const MAX_HISTORY = 20;
 const SETTINGS_KEY = "pantalla-contexto:settings";
 
@@ -64,6 +52,7 @@ const els = {
   cardSummary: $("cardSummary"),
   cardChanges: $("cardChanges"),
   entities: $("entities"),
+  chatBox: $("chatBox"),
   chatLine: $("chatLine"),
   copyChatBtn: $("copyChatBtn"),
   uncertainBox: $("uncertainBox"),
@@ -73,11 +62,19 @@ const els = {
   historyBox: $("historyBox"),
   historyList: $("historyList"),
   copyOverlayBtn: $("copyOverlayBtn"),
+  copyApiBtn: $("copyApiBtn"),
+  copyAiBtn: $("copyAiBtn"),
+  textBox: $("textBox"),
+  screenText: $("screenText"),
 };
 
 const state = {
   stream: null,
-  maxSide: 1568, // lo fija el analizador (los modelos locales prefieren imágenes pequeñas)
+  // Los fija el analizador: los modelos locales prefieren imágenes pequeñas y el OCR necesita ampliar la letra diminuta.
+  maxSide: 1568,
+  minSide: 0,
+  quality: 0.8,
+  current: null, // entrada que se está mostrando (para «Copiar para otra IA»)
   selection: null, // rectángulo normalizado, o null = pantalla completa
   selecting: false,
   busy: false,
@@ -323,11 +320,13 @@ function encodeFrame() {
   const src = toSourceRect(state.selection, videoWidth, videoHeight);
   if (isRegionTooSmall(src)) throw new Error("La zona elegida es demasiado pequeña.");
 
-  const out = fitSize(src.w, src.h, state.maxSide);
+  const out = fitSize(src.w, src.h, state.maxSide, state.minSide);
   const canvas = document.createElement("canvas");
   canvas.width = out.width;
   canvas.height = out.height;
-  canvas.getContext("2d").drawImage(els.video, src.x, src.y, src.w, src.h, 0, 0, out.width, out.height);
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingQuality = "high"; // al ampliar, un suavizado bueno es lo que permite al OCR leer letra pequeña
+  ctx.drawImage(els.video, src.x, src.y, src.w, src.h, 0, 0, out.width, out.height);
 
   const preview = document.createElement("canvas");
   const previewSize = fitSize(src.w, src.h, 320);
@@ -335,7 +334,7 @@ function encodeFrame() {
   preview.height = previewSize.height;
   preview.getContext("2d").drawImage(canvas, 0, 0, preview.width, preview.height);
 
-  return { image: canvas.toDataURL("image/jpeg", JPEG_QUALITY), preview: preview.toDataURL("image/jpeg", 0.7) };
+  return { image: canvas.toDataURL("image/jpeg", state.quality), preview: preview.toDataURL("image/jpeg", 0.7) };
 }
 
 // ---------- análisis ----------
@@ -401,7 +400,10 @@ async function analyze() {
 function render(entry) {
   const { context, meta, preview } = entry;
   els.card.hidden = false;
-  els.categoryBadge.textContent = CATEGORY_LABELS[context.category] ?? context.category;
+  els.categoryBadge.textContent = (CATEGORY_LABELS[els.languageSelect.value] ?? CATEGORY_LABELS.es)[context.category] ?? context.category;
+  state.current = entry;
+  els.textBox.hidden = !context.text;
+  els.screenText.textContent = context.text ?? "";
   els.confidence.textContent = CONFIDENCE_LABELS[context.confidence] ?? "";
   els.cardTitle.textContent = context.title;
   els.cardSummary.textContent = context.summary;
@@ -419,6 +421,7 @@ function render(entry) {
   );
 
   els.chatLine.textContent = context.chat_line;
+  els.chatBox.hidden = !context.chat_line;
   els.uncertainBox.hidden = context.uncertain.length === 0;
   els.uncertainList.replaceChildren(
     ...context.uncertain.map((u) => {
@@ -430,7 +433,9 @@ function render(entry) {
 
   els.shot.hidden = !preview;
   if (preview) els.shot.src = preview;
-  els.meta.textContent = `${meta.model} · ${meta.usage.input_tokens} tokens de entrada / ${meta.usage.output_tokens} de salida`;
+  // El OCR local no gasta tokens: no tiene sentido mostrar «0 tokens».
+  const tokens = meta.usage?.input_tokens || meta.usage?.output_tokens ? ` · ${meta.usage.input_tokens} tokens de entrada / ${meta.usage.output_tokens} de salida` : "";
+  els.meta.textContent = `${meta.model}${tokens}`;
 }
 
 function addToHistory(entry) {
@@ -563,6 +568,13 @@ async function copyText(text, okMessage) {
 }
 
 els.copyChatBtn.addEventListener("click", () => copyText(els.chatLine.textContent, "Frase copiada."));
+els.copyAiBtn.addEventListener("click", () => {
+  if (!state.current) return;
+  copyText(contextToPrompt(state.current.context, { language: els.languageSelect.value }), "Contexto copiado: pégalo en cualquier IA.");
+});
+els.copyApiBtn.addEventListener("click", () =>
+  copyText(`${location.origin}/api/context?format=prompt`, "URL copiada: cualquier IA o bot que la lea sabrá el contexto actual."),
+);
 els.copyOverlayBtn.addEventListener("click", () =>
   copyText(`${location.origin}/overlay`, "URL del overlay copiada. En OBS: Fuentes → Navegador → pega la URL."),
 );
@@ -578,6 +590,8 @@ async function refreshBackend() {
   try {
     const { backend } = await (await fetch("/api/config")).json();
     state.maxSide = backend.maxSide ?? state.maxSide;
+    state.minSide = backend.minSide ?? 0;
+    state.quality = backend.quality ?? 0.8;
     const cost = COST_LABELS[backend.cost] ?? backend.cost;
     els.backendInfo.textContent = `Analizador: ${backend.name} · ${backend.model} · ${cost}`;
     els.backendInfo.classList.toggle("ok", backend.ready);

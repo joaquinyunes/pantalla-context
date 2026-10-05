@@ -1,7 +1,7 @@
 {
   "name": "pantalla-contexto",
   "version": "0.1.0",
-  "description": "Analizador de pantalla: un visor que vigila la pantalla y un analizador (gratis y local o en la nube) que da el contexto de lo que pasa.",
+  "description": "Analizador de pantalla gratis y ligero: ve la pantalla, la analiza (OCR integrado o un modelo) y conecta el contexto con otra IA.",
   "type": "module",
   "private": true,
   "engines": {
@@ -10,9 +10,13 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
     "analyzer": "node --env-file-if-exists=.env analyzer.js",
+    "mcp": "node --env-file-if-exists=.env mcp.js",
     "test": "node --test \"test/*.test.js\""
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.131.0"
+    "@anthropic-ai/sdk": "^0.131.0",
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@tesseract.js-data/spa": "^1.0.0",
+    "tesseract.js": "^7.0.0"
   }
 }

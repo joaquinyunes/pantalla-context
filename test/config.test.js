@@ -13,6 +13,27 @@ test("valores por defecto: auto, Ollama local, Gemini Flash-Lite y Claude con es
   assert.equal(c.gemini.model, "gemini-flash-lite-latest");
   assert.deepEqual([c.claude.model, c.claude.effort, c.claude.fallbacks, c.claude.configured], ["claude-opus-5-5", "low", true, false]);
   assert.deepEqual([c.analyzer.port, c.analyzer.host, c.analyzer.token], [4000, "127.0.0.1", null]);
+  assert.deepEqual(c.ocr, { langs: ["eng"], langPath: null, keepAliveMs: 60_000 });
+  assert.deepEqual([c.llm, c.webhook, c.knowledgeFile], [null, null, null]);
+});
+
+test("OCR: idiomas en varios formatos, tiempo de liberación y carpeta propia", () => {
+  assert.deepEqual(loadConfig({ PANTALLA_OCR_LANGS: "eng+spa" }).ocr.langs, ["eng", "spa"]);
+  assert.deepEqual(loadConfig({ PANTALLA_OCR_LANGS: "eng, spa ,eng" }).ocr.langs, ["eng", "spa"], "sin repetidos");
+  const c = loadConfig({ PANTALLA_OCR_KEEP_ALIVE_S: "5", PANTALLA_OCR_LANG_PATH: "/datos/tessdata", PANTALLA_KNOWLEDGE_FILE: "/datos/mio.json" });
+  assert.deepEqual([c.ocr.keepAliveMs, c.ocr.langPath, c.knowledgeFile], [5000, "/datos/tessdata", "/datos/mio.json"]);
+});
+
+test("IA externa: URL y modelo juntos, clave opcional, modo JSON y tiempo máximo", () => {
+  const c = loadConfig({ PANTALLA_LLM_URL: "https://api.groq.com/openai/v1/", PANTALLA_LLM_MODEL: "un-modelo" });
+  assert.deepEqual(c.llm, { baseUrl: "https://api.groq.com/openai/v1", model: "un-modelo", apiKey: null, jsonMode: true, timeoutMs: 60_000 });
+  const full = loadConfig({ PANTALLA_LLM_URL: "http://localhost:1234/v1", PANTALLA_LLM_MODEL: "m", PANTALLA_LLM_KEY: "k", PANTALLA_LLM_JSON_MODE: "0", PANTALLA_LLM_TIMEOUT_S: "20" });
+  assert.deepEqual(full.llm, { baseUrl: "http://localhost:1234/v1", model: "m", apiKey: "k", jsonMode: false, timeoutMs: 20_000 });
+});
+
+test("webhook: URL y secreto opcional", () => {
+  assert.deepEqual(loadConfig({ PANTALLA_WEBHOOK_URL: "https://hooks.example/abc", PANTALLA_WEBHOOK_SECRET: "s" }).webhook, { url: "https://hooks.example/abc", secret: "s" });
+  assert.equal(loadConfig({ PANTALLA_WEBHOOK_URL: "https://hooks.example/abc" }).webhook.secret, null);
 });
 
 test("lee las claves estándar de cada proveedor", () => {
@@ -59,6 +80,13 @@ test("rechaza valores inválidos con un mensaje que nombra la variable", () => {
     [{ PANTALLA_MAX_SIDE: "100" }, /PANTALLA_MAX_SIDE/],
     [{ PANTALLA_ANALYZER_URL: "no es url" }, /PANTALLA_ANALYZER_URL/],
     [{ PANTALLA_ANALYZER_URL: "ftp://x" }, /PANTALLA_ANALYZER_URL/],
+    [{ PANTALLA_LLM_URL: "https://x" }, /PANTALLA_LLM_MODEL/],
+    [{ PANTALLA_LLM_MODEL: "m" }, /PANTALLA_LLM_URL/],
+    [{ PANTALLA_LLM_URL: "no es url", PANTALLA_LLM_MODEL: "m" }, /PANTALLA_LLM_URL no es una URL/],
+    [{ PANTALLA_WEBHOOK_URL: "javascript:alert(1)" }, /PANTALLA_WEBHOOK_URL/],
+    [{ PANTALLA_OCR_LANGS: "../etc" }, /PANTALLA_OCR_LANGS/],
+    [{ PANTALLA_OCR_LANGS: "  " }, /PANTALLA_OCR_LANGS/],
+    [{ PANTALLA_OCR_KEEP_ALIVE_S: "0" }, /PANTALLA_OCR_KEEP_ALIVE_S/],
   ];
   for (const [env, pattern] of bad) assert.throws(() => loadConfig(env), pattern, JSON.stringify(env));
 });

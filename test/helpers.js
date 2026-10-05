@@ -14,7 +14,7 @@ export async function startMock(respond) {
     } catch {
       body = raw;
     }
-    requests.push({ method: req.method, path: req.url, headers: req.headers, body });
+    requests.push({ method: req.method, path: req.url, headers: req.headers, body, raw });
     const out = (await respond(req, body)) ?? {};
     if (out.delayMs) await new Promise((r) => setTimeout(r, out.delayMs));
     res.writeHead(out.status ?? 200, { "content-type": "application/json" });

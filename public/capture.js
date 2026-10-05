@@ -28,9 +28,14 @@ export function isRegionTooSmall(rect) {
   return rect.w < MIN_REGION_PX || rect.h < MIN_REGION_PX;
 }
 
-// Tamaño de salida: conserva la proporción y limita el lado largo a MAX_SIDE (nunca amplía).
-export function fitSize(w, h, maxSide = MAX_SIDE) {
-  const scale = Math.min(1, maxSide / Math.max(w, h));
+export const MAX_UPSCALE = 3; // ampliar más que esto solo agranda el desenfoque
+
+// Tamaño de salida: conserva la proporción y limita el lado largo a `maxSide`. Solo amplía si se pide `minSide`
+// (el OCR falla con letra diminuta pero lee bien la misma imagen ampliada), hasta un máximo de MAX_UPSCALE veces.
+export function fitSize(w, h, maxSide = MAX_SIDE, minSide = 0) {
+  const longSide = Math.max(w, h);
+  let scale = Math.min(1, maxSide / longSide);
+  if (scale === 1 && longSide < minSide) scale = Math.min(MAX_UPSCALE, minSide / longSide);
   return { width: Math.max(1, Math.round(w * scale)), height: Math.max(1, Math.round(h * scale)) };
 }
 

@@ -15,6 +15,7 @@
       <p id="backendInfo" class="backend muted">Comprobando analizador…</p>
     </div>
     <div class="top-actions">
+      <button id="copyApiBtn" class="btn small" type="button" title="URL que cualquier IA o bot puede leer para saber el contexto actual">Copiar URL para otra IA</button>
       <button id="copyOverlayBtn" class="btn small" type="button" title="Copia la URL para usarla como Fuente de navegador en OBS">Copiar URL del overlay (OBS)</button>
     </div>
   </header>
@@ -100,10 +101,18 @@
         <p id="cardSummary" class="summary"></p>
         <p id="cardChanges" class="changes" hidden></p>
         <dl id="entities" class="entities"></dl>
-        <div class="chat">
+        <div id="chatBox" class="chat">
           <p id="chatLine"></p>
           <button id="copyChatBtn" class="btn small" type="button">Copiar</button>
         </div>
+        <div class="ai-share">
+          <button id="copyAiBtn" class="btn small primary" type="button" title="Texto listo para pegar en ChatGPT, Claude, Gemini o cualquier otra IA">Copiar contexto para otra IA</button>
+          <span class="muted">Pégalo en cualquier chat de IA para que sepa qué estás viendo.</span>
+        </div>
+        <details id="textBox" hidden>
+          <summary>Texto leído en pantalla</summary>
+          <pre id="screenText"></pre>
+        </details>
         <details id="uncertainBox" hidden>
           <summary>No se pudo confirmar</summary>
           <ul id="uncertainList"></ul>

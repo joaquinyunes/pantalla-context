@@ -23,6 +23,14 @@ test("isRegionTooSmall", () => {
   assert.equal(isRegionTooSmall({ w: 32, h: 32 }), false);
 });
 
+test("fitSize amplía zonas pequeñas solo si se pide minSide, hasta un máximo de 3x", () => {
+  assert.deepEqual(fitSize(400, 300), { width: 400, height: 300 }, "por defecto nunca amplía");
+  assert.deepEqual(fitSize(800, 600, 1600, 1280), { width: 1280, height: 960 }, "800 -> 1280 de lado largo");
+  assert.deepEqual(fitSize(400, 300, 1600, 1280), { width: 1200, height: 900 }, "3.2x se limita a 3x");
+  assert.deepEqual(fitSize(1280, 720, 1600, 1280), { width: 1280, height: 720 }, "ya es suficiente");
+  assert.deepEqual(fitSize(2000, 1000, 1600, 1280), { width: 1600, height: 800 }, "una captura grande se reduce, no se amplía");
+});
+
 test("fitSize reduce conservando proporción y nunca amplía", () => {
   assert.deepEqual(fitSize(3136, 1568), { width: 1568, height: 784 });
   assert.deepEqual(fitSize(800, 600), { width: 800, height: 600 });
