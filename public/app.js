@@ -557,10 +557,23 @@ function renderWhy(context) {
   );
 }
 
+// Si el servidor protege la API con PANTALLA_API_TOKEN, abre el visor como http://127.0.0.1:3000/?token=TU_TOKEN.
+const pageToken = new URLSearchParams(location.search).get("token");
+const authHeaders = pageToken ? { authorization: `Bearer ${pageToken}` } : {};
+// Dirección de un recurso exportable, con el token solo si el visor se abrió con él (para el overlay de OBS, que lo necesita).
+const exportUrl = (path) => `${location.origin}${path}${pageToken ? `${path.includes("?") ? "&" : "?"}token=${encodeURIComponent(pageToken)}` : ""}`;
+const TOKEN_NOTE = " Incluye tu token: no la compartas en público.";
+
 // Lo que has estado haciendo y desde cuándo, con los eventos confirmados.
 async function refreshActivity() {
   try {
-    const snapshot = await (await fetch("/api/session?verified=all")).json();
+    const response = await fetch("/api/session?verified=all", { headers: authHeaders });
+    if (response.status === 401) {
+      els.activityBox.hidden = false;
+      els.activityText.textContent = "La API está protegida con token: abre el visor con ?token=TU_TOKEN al final de la dirección para ver la actividad.";
+      return;
+    }
+    const snapshot = await response.json();
     els.activityBox.hidden = !snapshot.current && !snapshot.candidate && snapshot.recent.length === 0;
     els.activityText.textContent = sessionToText(snapshot, { language: els.languageSelect.value });
   } catch {
@@ -707,10 +720,10 @@ els.copyAiBtn.addEventListener("click", () => {
 els.copyActivityBtn.addEventListener("click", () => copyText(els.activityText.textContent, "Actividad copiada: pégala en cualquier IA."));
 els.switchBtn.addEventListener("click", () => switchSource());
 els.copyApiBtn.addEventListener("click", () =>
-  copyText(`${location.origin}/api/context?format=prompt`, "URL copiada: cualquier IA o bot que la lea sabrá el contexto actual."),
+  copyText(exportUrl("/api/context?format=prompt"), `URL copiada: cualquier IA o bot que la lea sabrá el contexto actual.${pageToken ? TOKEN_NOTE : ""}`),
 );
 els.copyOverlayBtn.addEventListener("click", () =>
-  copyText(`${location.origin}/overlay`, "URL del overlay copiada. En OBS: Fuentes → Navegador → pega la URL."),
+  copyText(exportUrl("/overlay"), `URL del overlay copiada. En OBS: Fuentes → Navegador → pega la URL.${pageToken ? TOKEN_NOTE : ""}`),
 );
 
 // ---------- arranque ----------
