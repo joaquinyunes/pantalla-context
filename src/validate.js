@@ -58,11 +58,14 @@ export function parseAnalyzeRequest(body) {
 }
 
 const CONFIDENCE = new Set(["low", "medium", "high"]);
+const CERTAINTY_OF = { low: 0.3, medium: 0.6, high: 0.85 }; // para motores que solo dan «baja/media/alta»
 
 // Deja el resultado del modelo en una forma segura de mostrar y publicar.
 export function normalizeResult(raw) {
   const text = (v, max) => clip(v, max);
   const list = (v, max, n) => (Array.isArray(v) ? v.slice(0, n).map((x) => clip(x, max)).filter(Boolean) : []);
+  const confidence = CONFIDENCE.has(raw.confidence) ? raw.confidence : "low";
+  const certainty = Number.isFinite(raw.certainty) ? Math.min(1, Math.max(0, Math.round(raw.certainty * 100) / 100)) : CERTAINTY_OF[confidence];
   return {
     category: text(raw.category, 40) || "other",
     title: text(raw.title, 120),
@@ -76,8 +79,15 @@ export function normalizeResult(raw) {
       : [],
     chat_line: text(raw.chat_line, 240),
     changes: text(raw.changes, 300),
-    confidence: CONFIDENCE.has(raw.confidence) ? raw.confidence : "low",
-    uncertain: list(raw.uncertain, 160, 6),
+    confidence,
+    uncertain: list(raw.uncertain, 160, 8),
     text: text(raw.text, 2000),
+    certainty,
+    // En qué texto de la pantalla se basa cada dato, y por qué se eligió esta actividad.
+    evidence: Array.isArray(raw.evidence)
+      ? raw.evidence.slice(0, 12).map((e) => ({ label: text(e?.label, 40), value: text(e?.value, 120), text: text(e?.text, 100), confidence: Number.isFinite(e?.confidence) ? Math.round(e.confidence) : 0 })).filter((e) => e.label && e.text)
+      : [],
+    reasons: list(raw.reasons, 160, 8),
+    subject: text(raw.subject, 100),
   };
 }

@@ -2,6 +2,8 @@ import {
   CHANGE_RATIO,
   changeRatio,
   decideWatch,
+  describeSource,
+  displayMediaOptions,
   fitSize,
   isRegionTooSmall,
   luminance,
@@ -10,11 +12,10 @@ import {
   SETTLED_RATIO,
   toSourceRect,
 } from "/capture.js";
-import { CATEGORY_LABELS, contextToPrompt } from "/context-format.js";
+import { CATEGORY_LABELS, contextToPrompt, sessionToText } from "/context-format.js";
 
 const $ = (id) => document.getElementById(id);
 
-const CONFIDENCE_LABELS = { low: "confianza baja", medium: "confianza media", high: "confianza alta" };
 const COST_LABELS = { "free-local": "gratis · local", "free-tier": "gratis (con límites)", paid: "de pago", hybrid: "OCR local + IA externa (solo texto)" };
 // Errores tras los cuales seguir vigilando no tiene sentido: hace falta que el usuario actúe.
 const FATAL_CODES = new Set(["upstream_auth", "upstream_bad_request", "model_missing", "bad_host"]);
@@ -47,7 +48,6 @@ const els = {
   status: $("status"),
   card: $("card"),
   categoryBadge: $("categoryBadge"),
-  confidence: $("confidence"),
   cardTitle: $("cardTitle"),
   cardSummary: $("cardSummary"),
   cardChanges: $("cardChanges"),
@@ -66,6 +66,18 @@ const els = {
   copyAiBtn: $("copyAiBtn"),
   textBox: $("textBox"),
   screenText: $("screenText"),
+  surfaceSelect: $("surfaceSelect"),
+  switchBtn: $("switchBtn"),
+  sourceInfo: $("sourceInfo"),
+  exportInfo: $("exportInfo"),
+  verifyBadge: $("verifyBadge"),
+  verifyText: $("verifyText"),
+  whyBox: $("whyBox"),
+  reasonsList: $("reasonsList"),
+  evidenceList: $("evidenceList"),
+  activityBox: $("activityBox"),
+  activityText: $("activityText"),
+  copyActivityBtn: $("copyActivityBtn"),
 };
 
 const state = {
@@ -82,6 +94,8 @@ const state = {
   promptHistory: [], // análisis previos que se mandan al modelo para el campo "changes"
   history: [], // lo que se muestra en el panel de historial
   selectedHistory: -1,
+  onEnded: null, // manejador de «dejaron de compartir» de la pista actual
+  policy: { minCertainty: 0.5, stableFrames: 2 }, // política de verificación del servidor
 };
 
 // ---------- ajustes ----------
@@ -101,6 +115,7 @@ function saveSettings() {
       JSON.stringify({
         mode: els.modeSelect.value,
         language: els.languageSelect.value,
+        surface: els.surfaceSelect.value,
         note: els.noteInput.value,
         interval: els.intervalSelect.value,
         heartbeat: els.heartbeatSelect.value,
@@ -132,6 +147,8 @@ function syncControls() {
   els.analyzeBtn.disabled = !sharing || state.busy;
   els.autoCheck.disabled = !sharing;
   els.shareBtn.textContent = sharing ? "Dejar de compartir" : "Compartir pantalla";
+  els.switchBtn.hidden = !sharing;
+  els.surfaceSelect.disabled = sharing;
   els.shareBtn.classList.toggle("primary", !sharing);
   els.selectBtn.classList.toggle("active", state.selecting);
   els.frame.classList.toggle("selecting", state.selecting);
@@ -155,36 +172,77 @@ function updateSelectionInfo() {
 
 // ---------- compartir pantalla ----------
 
-async function startShare() {
+// Pide al navegador una fuente. SIEMPRE enseña su propio selector (por privacidad no se puede saltar);
+// la opción elegida aquí solo decide cuál se muestra primero. Devuelve null si el usuario cancela o falla.
+async function pickSource() {
   if (!navigator.mediaDevices?.getDisplayMedia) {
     setStatus("Este navegador no permite compartir pantalla. Usa Chrome, Edge o Firefox de escritorio.", "error");
-    return;
+    return null;
   }
-  let stream;
   try {
-    stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 2, max: 5 } }, audio: false });
+    return await navigator.mediaDevices.getDisplayMedia(displayMediaOptions(els.surfaceSelect.value));
   } catch (err) {
-    setStatus(
-      err.name === "NotAllowedError" ? "Cancelaste el permiso para compartir pantalla." : `No se pudo capturar la pantalla: ${err.message}`,
-      "error",
-    );
+    setStatus(err.name === "NotAllowedError" ? "Cancelaste el permiso para compartir pantalla." : `No se pudo capturar la pantalla: ${err.message}`, "error");
+    return null;
+  }
+}
+
+function showSource() {
+  const track = state.stream?.getVideoTracks()[0];
+  if (!track) {
+    els.sourceInfo.textContent = "";
     return;
   }
+  const source = describeSource(track.getSettings?.(), track.label);
+  els.sourceInfo.textContent = `Compartiendo ${source.text}.`;
+}
+
+function attachStream(stream) {
+  const track = stream.getVideoTracks()[0];
+  state.onEnded = () => stopShare();
+  track.addEventListener("ended", state.onEnded);
   state.stream = stream;
-  stream.getVideoTracks()[0].addEventListener("ended", stopShare);
   els.video.srcObject = stream;
-  await els.video.play().catch(() => {});
+  return els.video.play().catch(() => {});
+}
+
+async function startShare() {
+  const stream = await pickSource();
+  if (!stream) return;
+  await attachStream(stream);
   resetSelection();
-  setStatus("Pantalla compartida. Pulsa «Analizar ahora» o activa el modo automático.");
+  showSource();
+  setStatus("Pantalla compartida. Pulsa «Analizar ahora» o activa la vigilancia.");
+  syncControls();
+  resizeCanvas();
+}
+
+// Cambia de pantalla, ventana o pestaña SIN parar la vigilancia ni perder los ajustes. El selector del navegador
+// se abre con la fuente actual aún activa: si cancelas, sigues como estabas.
+async function switchSource() {
+  const stream = await pickSource();
+  if (!stream) {
+    setStatus("Se mantiene la fuente actual.");
+    return;
+  }
+  const old = state.stream;
+  old?.getVideoTracks()[0]?.removeEventListener("ended", state.onEnded);
+  old?.getTracks().forEach((t) => t.stop());
+  await attachStream(stream);
+  resetSelection(); // la zona elegida pertenecía a la fuente anterior
+  showSource();
+  setStatus("Fuente cambiada. La vigilancia sigue activa y se vuelve a analizar.");
   syncControls();
   resizeCanvas();
 }
 
 function stopShare() {
   stopAuto();
+  state.stream?.getVideoTracks()[0]?.removeEventListener("ended", state.onEnded);
   state.stream?.getTracks().forEach((t) => t.stop());
   state.stream = null;
   els.video.srcObject = null;
+  showSource();
   state.selecting = false;
   resetBaseline();
   syncControls();
@@ -291,6 +349,17 @@ els.canvas.addEventListener("pointercancel", () => {
 });
 
 new ResizeObserver(resizeCanvas).observe(els.frame);
+let lastSize = "";
+els.video.addEventListener("resize", () => {
+  const size = `${els.video.videoWidth}x${els.video.videoHeight}`;
+  if (lastSize && size !== lastSize && state.stream) {
+    resetSelection();
+    showSource();
+    setStatus("La fuente cambió de tamaño: se analiza la pantalla completa.");
+    syncControls();
+  }
+  lastSize = size;
+});
 els.video.addEventListener("loadedmetadata", () => {
   resizeCanvas();
   updateSelectionInfo();
@@ -382,8 +451,9 @@ async function analyze() {
 
     state.lastThumb = thumb;
     state.promptHistory = [...state.promptHistory, { title: body.context.title, summary: body.context.summary }].slice(-3);
-    addToHistory({ context: body.context, meta: body.meta, preview: frame.preview, at: new Date() });
-    setStatus(`Listo en ${(body.meta.elapsed_ms / 1000).toFixed(1)} s.`);
+    addToHistory({ context: body.context, meta: body.meta, tracking: body.tracking, preview: frame.preview, at: new Date() });
+    setStatus(`Listo en ${(body.meta.elapsed_ms / 1000).toFixed(1)} s. ${trackingSummary(body.tracking)}`.trim());
+    refreshActivity();
     return { ok: true };
   } catch (err) {
     setStatus(err.message, "error");
@@ -398,13 +468,13 @@ async function analyze() {
 // ---------- resultados e historial ----------
 
 function render(entry) {
-  const { context, meta, preview } = entry;
+  const { context, meta, preview, tracking } = entry;
   els.card.hidden = false;
   els.categoryBadge.textContent = (CATEGORY_LABELS[els.languageSelect.value] ?? CATEGORY_LABELS.es)[context.category] ?? context.category;
   state.current = entry;
   els.textBox.hidden = !context.text;
   els.screenText.textContent = context.text ?? "";
-  els.confidence.textContent = CONFIDENCE_LABELS[context.confidence] ?? "";
+  renderVerification(tracking, context);
   els.cardTitle.textContent = context.title;
   els.cardSummary.textContent = context.summary;
   els.cardChanges.hidden = !context.changes;
@@ -420,6 +490,7 @@ function render(entry) {
     }),
   );
 
+  renderWhy(context);
   els.chatLine.textContent = context.chat_line;
   els.chatBox.hidden = !context.chat_line;
   els.uncertainBox.hidden = context.uncertain.length === 0;
@@ -436,6 +507,65 @@ function render(entry) {
   // El OCR local no gasta tokens: no tiene sentido mostrar «0 tokens».
   const tokens = meta.usage?.input_tokens || meta.usage?.output_tokens ? ` · ${meta.usage.input_tokens} tokens de entrada / ${meta.usage.output_tokens} de salida` : "";
   els.meta.textContent = `${meta.model}${tokens}`;
+}
+
+const pct = (n) => `${Math.round(n * 100)} %`;
+
+function trackingSummary(tracking) {
+  if (!tracking) return "";
+  if (tracking.verified) return "Verificado: se exporta.";
+  if (tracking.state === "confirming") return `Confirmando (${tracking.confirmations}/${tracking.needed}): aún no se exporta.`;
+  if (tracking.state === "switching") return "¿Cambio de actividad? Se confirmará si se repite.";
+  return `Certeza baja (${pct(tracking.certainty)}): no se exporta.`;
+}
+
+// Qué se ha concluido y cuánta seguridad hay, sin disfrazar una suposición de certeza.
+function renderVerification(tracking, context) {
+  const certainty = context.certainty ?? 0;
+  const set = (cls, badge, text) => {
+    els.verifyBadge.className = `vbadge ${cls}`.trim();
+    els.verifyBadge.textContent = badge;
+    els.verifyText.textContent = text;
+  };
+  if (!tracking) return set("", "No publicado", `Certeza ${pct(certainty)}. «Publicar en el overlay» está desmarcado: no se sigue ni se exporta.`);
+  if (tracking.state === "verified") return set("ok", "✓ Verificado", `Certeza ${pct(certainty)} · visto en ${tracking.confirmations} lecturas seguidas. Se exporta a la API, el overlay, el webhook y el MCP.`);
+  if (tracking.state === "confirming") return set("warn", `Confirmando ${tracking.confirmations}/${tracking.needed}`, `Certeza ${pct(certainty)}. Se exportará cuando se repita en otra lectura seguida; así un fotograma de transición no se da por cierto.`);
+  if (tracking.state === "switching") return set("warn", "¿Cambio de actividad?", `Certeza ${pct(certainty)}. Parece otra actividad, pero hace falta verla ${tracking.needed} veces seguidas para cambiar.`);
+  return set("low", "Certeza baja", `Certeza ${pct(certainty)}, por debajo del mínimo de ${pct(tracking.minCertainty)}: no se exporta.`);
+}
+
+// «¿Por qué lo digo?»: los motivos de la conclusión y, de cada dato, el texto de la pantalla en que se basa.
+function renderWhy(context) {
+  const reasons = context.reasons ?? [];
+  const evidence = context.evidence ?? [];
+  els.whyBox.hidden = reasons.length === 0 && evidence.length === 0;
+  els.reasonsList.replaceChildren(
+    ...reasons.map((r) => {
+      const li = document.createElement("li");
+      li.textContent = r;
+      return li;
+    }),
+  );
+  els.evidenceList.replaceChildren(
+    ...evidence.map((e) => {
+      const li = document.createElement("li");
+      const code = document.createElement("code");
+      code.textContent = e.text;
+      li.append(`${e.label}: ${e.value} ← `, code, ` (OCR ${e.confidence} %)`);
+      return li;
+    }),
+  );
+}
+
+// Lo que has estado haciendo y desde cuándo, con los eventos confirmados.
+async function refreshActivity() {
+  try {
+    const snapshot = await (await fetch("/api/session?verified=all")).json();
+    els.activityBox.hidden = !snapshot.current && !snapshot.candidate && snapshot.recent.length === 0;
+    els.activityText.textContent = sessionToText(snapshot, { language: els.languageSelect.value });
+  } catch {
+    // La actividad es un extra: si falla, el resto sigue funcionando.
+  }
 }
 
 function addToHistory(entry) {
@@ -554,7 +684,7 @@ els.modeSelect.addEventListener("change", () => {
   resetBaseline();
   saveSettings();
 });
-for (const el of [els.languageSelect, els.noteInput, els.intervalSelect, els.heartbeatSelect, els.changesCheck, els.publishCheck]) {
+for (const el of [els.languageSelect, els.surfaceSelect, els.noteInput, els.intervalSelect, els.heartbeatSelect, els.changesCheck, els.publishCheck]) {
   el.addEventListener("change", saveSettings);
 }
 
@@ -570,8 +700,12 @@ async function copyText(text, okMessage) {
 els.copyChatBtn.addEventListener("click", () => copyText(els.chatLine.textContent, "Frase copiada."));
 els.copyAiBtn.addEventListener("click", () => {
   if (!state.current) return;
-  copyText(contextToPrompt(state.current.context, { language: els.languageSelect.value }), "Contexto copiado: pégalo en cualquier IA.");
+  const { context, tracking } = state.current;
+  const withCheck = { ...context, verified: Boolean(tracking?.verified), confirmations: tracking?.confirmations };
+  copyText(contextToPrompt(withCheck, { language: els.languageSelect.value }), tracking?.verified ? "Contexto verificado copiado: pégalo en cualquier IA." : "Contexto copiado (SIN VERIFICAR, y así se lo dice a la otra IA).");
 });
+els.copyActivityBtn.addEventListener("click", () => copyText(els.activityText.textContent, "Actividad copiada: pégala en cualquier IA."));
+els.switchBtn.addEventListener("click", () => switchSource());
 els.copyApiBtn.addEventListener("click", () =>
   copyText(`${location.origin}/api/context?format=prompt`, "URL copiada: cualquier IA o bot que la lea sabrá el contexto actual."),
 );
@@ -588,7 +722,11 @@ let backendTimer = null;
 async function refreshBackend() {
   clearTimeout(backendTimer);
   try {
-    const { backend } = await (await fetch("/api/config")).json();
+    const { backend, export: policy } = await (await fetch("/api/config")).json();
+    state.policy = policy ?? state.policy;
+    els.exportInfo.textContent = policy
+      ? `Exportación: ${policy.mode === "verified" ? `solo lo verificado (certeza ≥ ${Math.round(policy.minCertainty * 100)} % y ${policy.stableFrames} lecturas seguidas)` : "todo, marcando lo no verificado"}${policy.protected ? " · protegida con token" : ""}`
+      : "";
     state.maxSide = backend.maxSide ?? state.maxSide;
     state.minSide = backend.minSide ?? 0;
     state.quality = backend.quality ?? 0.8;
@@ -607,6 +745,7 @@ async function init() {
   const settings = loadSettings();
   els.noteInput.value = settings.note ?? "";
   els.languageSelect.value = settings.language ?? "es";
+  els.surfaceSelect.value = ["any", "browser", "window", "monitor"].includes(settings.surface) ? settings.surface : "any";
   els.intervalSelect.value = settings.interval ?? "10";
   els.heartbeatSelect.value = settings.heartbeat ?? "0";
   els.changesCheck.checked = settings.onlyChanges ?? true;

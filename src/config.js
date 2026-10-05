@@ -34,6 +34,14 @@ function ocrLangs(raw) {
   return langs;
 }
 
+function num(env, name, fallback, { min, max }) {
+  const raw = env[name];
+  if (raw === undefined || raw === "") return fallback;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < min || n > max) throw new Error(`${name} debe ser un número entre ${min} y ${max} (valor actual: "${raw}").`);
+  return n;
+}
+
 function int(env, name, fallback, { min, max }) {
   const raw = env[name];
   if (raw === undefined || raw === "") return fallback;
@@ -65,6 +73,9 @@ export function loadConfig(env = process.env) {
     throw new Error(`Para usar una IA externa define PANTALLA_LLM_URL y PANTALLA_LLM_MODEL juntas (falta ${llmUrl ? "PANTALLA_LLM_MODEL" : "PANTALLA_LLM_URL"}).`);
   }
 
+  const exportMode = env.PANTALLA_EXPORT || "verified";
+  if (!["verified", "all"].includes(exportMode)) throw new Error(`PANTALLA_EXPORT inválido: "${exportMode}". Usa verified (solo lo verificado) o all.`);
+
   const host = env.HOST || "127.0.0.1";
   const analyzerHost = env.PANTALLA_ANALYZER_HOST || "127.0.0.1";
   const think = env.PANTALLA_OLLAMA_THINK;
@@ -74,6 +85,15 @@ export function loadConfig(env = process.env) {
     host,
     loopbackOnly: LOOPBACK.has(host),
     backend,
+    // Verificación: qué certeza mínima y cuántas lecturas seguidas hacen falta para exportar un contexto.
+    tracking: {
+      exportMode,
+      minCertainty: num(env, "PANTALLA_MIN_CERTAINTY", 0.5, { min: 0, max: 1 }),
+      stableFrames: int(env, "PANTALLA_STABLE_FRAMES", 2, { min: 1, max: 10 }),
+      switchFrames: int(env, "PANTALLA_SWITCH_FRAMES", 2, { min: 1, max: 10 }),
+      maxGapMs: int(env, "PANTALLA_ACTIVITY_GAP_S", 300, { min: 10, max: 86400 }) * 1000,
+    },
+    apiToken: env.PANTALLA_API_TOKEN || null,
     maxSide: int(env, "PANTALLA_MAX_SIDE", null, { min: 256, max: 4096 }),
     analyzerUrl,
     analyzer: {

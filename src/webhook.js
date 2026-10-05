@@ -1,18 +1,20 @@
 import { createHmac } from "node:crypto";
 import { contextToPrompt, contextToText } from "../public/context-format.js";
 
-// Envía cada contexto nuevo a una URL (n8n, Make, Zapier, un bot de Discord/Twitch, tu propio servidor...).
+// Envía cada contexto exportable (por defecto, solo el verificado) a una URL (n8n, Make, Zapier, un bot de Discord/Twitch, tu propio servidor...).
 // Si hay secreto, firma el cuerpo con HMAC-SHA256 en `x-pantalla-signature: sha256=<hex>` para que el receptor verifique el origen.
 export function createWebhook({ url, secret = null, fetchImpl = fetch, timeoutMs = 5000, warn = console.warn }) {
   let failing = false;
 
-  return async function send(entry) {
+  return async function send(entry, { events = [], session = null } = {}) {
     const language = entry.language ?? "es";
     const body = JSON.stringify({
       event: "context",
       context: entry,
       text: contextToText(entry, { language }),
       prompt: contextToPrompt(entry, { language }),
+      events,
+      session,
     });
     const headers = { "content-type": "application/json", "user-agent": "pantalla-contexto" };
     if (secret) headers["x-pantalla-signature"] = `sha256=${createHmac("sha256", secret).update(body).digest("hex")}`;

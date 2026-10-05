@@ -22,3 +22,5 @@ p { margin: 0; }
 
 @keyframes in { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+
+.card.unverified { opacity: 0.6; border-left-color: #ffb454; }

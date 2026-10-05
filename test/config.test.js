@@ -36,6 +36,15 @@ test("webhook: URL y secreto opcional", () => {
   assert.equal(loadConfig({ PANTALLA_WEBHOOK_URL: "https://hooks.example/abc" }).webhook.secret, null);
 });
 
+test("verificación y exportación: por defecto solo lo verificado, certeza ≥ 0,5 y 2 lecturas seguidas", () => {
+  const c = loadConfig({});
+  assert.deepEqual(c.tracking, { exportMode: "verified", minCertainty: 0.5, stableFrames: 2, switchFrames: 2, maxGapMs: 300_000 });
+  assert.equal(c.apiToken, null);
+  const strict = loadConfig({ PANTALLA_EXPORT: "all", PANTALLA_MIN_CERTAINTY: "0.8", PANTALLA_STABLE_FRAMES: "3", PANTALLA_SWITCH_FRAMES: "1", PANTALLA_ACTIVITY_GAP_S: "60", PANTALLA_API_TOKEN: "t" });
+  assert.deepEqual(strict.tracking, { exportMode: "all", minCertainty: 0.8, stableFrames: 3, switchFrames: 1, maxGapMs: 60_000 });
+  assert.equal(strict.apiToken, "t");
+});
+
 test("lee las claves estándar de cada proveedor", () => {
   assert.equal(loadConfig({ ANTHROPIC_API_KEY: "a" }).claude.configured, true);
   assert.equal(loadConfig({ ANTHROPIC_PROFILE: "p" }).claude.configured, true);
@@ -87,6 +96,12 @@ test("rechaza valores inválidos con un mensaje que nombra la variable", () => {
     [{ PANTALLA_OCR_LANGS: "../etc" }, /PANTALLA_OCR_LANGS/],
     [{ PANTALLA_OCR_LANGS: "  " }, /PANTALLA_OCR_LANGS/],
     [{ PANTALLA_OCR_KEEP_ALIVE_S: "0" }, /PANTALLA_OCR_KEEP_ALIVE_S/],
+    [{ PANTALLA_EXPORT: "casi" }, /PANTALLA_EXPORT/],
+    [{ PANTALLA_MIN_CERTAINTY: "2" }, /PANTALLA_MIN_CERTAINTY/],
+    [{ PANTALLA_MIN_CERTAINTY: "mucha" }, /PANTALLA_MIN_CERTAINTY/],
+    [{ PANTALLA_STABLE_FRAMES: "0" }, /PANTALLA_STABLE_FRAMES/],
+    [{ PANTALLA_STABLE_FRAMES: "11" }, /PANTALLA_STABLE_FRAMES/],
+    [{ PANTALLA_ACTIVITY_GAP_S: "5" }, /PANTALLA_ACTIVITY_GAP_S/],
   ];
   for (const [env, pattern] of bad) assert.throws(() => loadConfig(env), pattern, JSON.stringify(env));
 });

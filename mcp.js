@@ -6,19 +6,27 @@ import { contextToText } from "./public/context-format.js";
 import { createMcpHandler } from "./src/mcp.js";
 
 const baseUrl = (process.env.PANTALLA_URL || "http://127.0.0.1:3000").replace(/\/+$/, "");
+const token = process.env.PANTALLA_API_TOKEN || null;
 
-async function fetchContext({ format, language }) {
+async function fetchContext({ tool, format, language, verified }) {
   const query = new URLSearchParams({ format, lang: language });
+  if (tool === "get_screen_context") query.set("verified", verified === "any" ? "all" : "true");
+  else query.set("verified", "true");
+  const endpoint = tool === "get_screen_activity" ? "/api/session" : "/api/context";
   let res;
   try {
-    res = await fetch(`${baseUrl}/api/context?${query}`, { signal: AbortSignal.timeout(5000) });
+    res = await fetch(`${baseUrl}${endpoint}?${query}`, { headers: token ? { authorization: `Bearer ${token}` } : {}, signal: AbortSignal.timeout(5000) });
   } catch {
     throw new Error(`No se pudo conectar con Pantalla Contexto en ${baseUrl}. ¿Está arrancado (npm start)? Si usa otro puerto, define PANTALLA_URL.`);
   }
+  if (res.status === 401) throw new Error("Pantalla Contexto exige un token: define PANTALLA_API_TOKEN en la configuración de este servidor MCP.");
   if (!res.ok) throw new Error(`Pantalla Contexto respondió ${res.status}.`);
   const body = await res.text();
-  // Con formato json y sin análisis todavía, el campo `latest` es null: se explica en texto.
-  if (format === "json" && JSON.parse(body).latest === null) return contextToText(null, { language });
+  // Con formato json y sin nada verificado, `latest` es null: se explica en texto, que es lo que el modelo aprovecha.
+  if (format === "json" && tool === "get_screen_context") {
+    const data = JSON.parse(body);
+    if (data.latest === null) return contextToText(null, { language, candidate: data.candidate });
+  }
   return body;
 }
 

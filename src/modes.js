@@ -38,9 +38,24 @@ export const MODES = {
       "Video or media player. Identify the title, platform, episode or scene if shown, and what is happening on screen. Read subtitles or captions if present.",
   },
   work: {
-    label: "Trabajo / apps",
+    label: "Documentos y diseño",
     focus:
-      "A work or productivity app (code editor, document, spreadsheet, design tool, terminal, email...). Identify the app, the file or document in view and the task the person seems to be doing.",
+      "A document, spreadsheet, presentation, design or note-taking app. Identify the app, the file or document in view and the task the person seems to be doing (writing, calculating, designing...).",
+  },
+  coding: {
+    label: "Programación / terminal",
+    focus:
+      "A code editor, IDE or terminal. Identify the editor, the file and language in view, the project, any visible error or stack trace, and the command or test run in the terminal with its result.",
+  },
+  comms: {
+    label: "Chats, correo y reuniones",
+    focus:
+      "A messaging app, email client or video call. Identify the app and what the person is doing (reading mail, chatting in a channel, in a meeting). Do not transcribe private messages, subjects or participant names.",
+  },
+  web: {
+    label: "Navegación web",
+    focus:
+      "A web page. Identify the site (domain), the page or headline in view and the kind of content (news, shop, social network, documentation...).",
   },
   generic: {
     label: "General",
@@ -64,7 +79,16 @@ export const CATEGORIES = [
   "streaming",
   "trading",
   "video_media",
-  "productivity",
+  "coding",
+  "terminal",
+  "documents",
+  "email",
+  "chat",
+  "meeting",
+  "browsing",
   "social",
   "other",
 ];
+
+// Contenido que suele ser privado: de él no se exporta el texto leído, solo lo que se está haciendo.
+export const PRIVATE_CATEGORIES = ["email", "chat", "meeting"];

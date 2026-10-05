@@ -85,9 +85,9 @@ test("partido sin cuotas -> deporte en directo", () => {
   assert.equal(r.title, "Boca Juniors 0-0 River Plate");
 });
 
-test("editor de código -> trabajo; página genérica -> otro con la cabecera como título", () => {
+test("editor de código -> programación; página genérica -> otro con la cabecera como título", () => {
   const code = extractContext(lines("function analyze(req) {", "const result = await run(req)", "Visual Studio Code", "error: undefined is not a function"));
-  assert.equal(code.category, "productivity");
+  assert.equal(code.category, "coding");
   assert.equal(facts(code).App, "Visual Studio Code");
 
   const shop = extractContext(lines(L("Bienvenido a la tienda", 40), "Ofertas de la semana", "Carrito (2)"));
@@ -116,12 +116,17 @@ test("sin texto o solo ruido: «Pantalla», confianza baja y sin inventar nada",
   }
 });
 
-test("OCR con poca confianza baja el nivel y lo avisa", () => {
-  const high = extractContext({ ...fixture("casino"), confidence: 90 });
-  const low = extractContext({ ...fixture("casino"), confidence: 40 });
-  assert.equal(high.confidence, "high");
-  assert.equal(low.confidence, "medium");
-  assert.ok(low.uncertain.some((u) => /poca seguridad/.test(u)));
+test("OCR con poca confianza baja la certeza y lo avisa", () => {
+  const withConfidence = (confidence) => {
+    const ocr = fixture("casino");
+    return extractContext({ ...ocr, lines: ocr.lines.map((l) => ({ ...l, confidence })) });
+  };
+  const sure = withConfidence(95);
+  const shaky = withConfidence(45);
+  assert.equal(sure.confidence, "high");
+  assert.ok(shaky.certainty < sure.certainty - 0.2, `${shaky.certainty} debería ser mucho menor que ${sure.certainty}`);
+  assert.notEqual(shaky.confidence, "high");
+  assert.ok(shaky.uncertain.some((u) => /poca seguridad/.test(u)));
 });
 
 test("correos y números largos se enmascaran ANTES de analizar (gmail.com de un correo no es la app Gmail)", () => {

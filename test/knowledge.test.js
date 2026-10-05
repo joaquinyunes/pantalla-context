@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { buildIndex, DEFAULT_KNOWLEDGE, editDistanceWithin, findNamesInLine, KNOWLEDGE_KEYS, loadKnowledge, mergeKnowledge, normalizeText } from "../src/ocr/knowledge.js";
+import { buildIndex, DEFAULT_KNOWLEDGE, domainCategories, editDistanceWithin, findNamesInLine, KNOWLEDGE_KEYS, loadKnowledge, mergeKnowledge, normalizeText } from "../src/ocr/knowledge.js";
 
 const index = buildIndex(mergeKnowledge());
 const names = (line) => findNamesInLine(index, line).map((m) => `${m.type}:${m.name}${m.exact ? "" : "~"}`);
@@ -42,7 +42,7 @@ test("mergeKnowledge añade lo del usuario, filtra basura y no toca el catálogo
   const merged = mergeKnowledge({ slots: ["Mi Tragaperras Local", 5, "", " x ", null], inventada: ["nada"], teams: "no es lista" });
   assert.ok(merged.slots.includes("Mi Tragaperras Local"));
   assert.ok(!merged.slots.includes("x") && !merged.slots.includes(5));
-  assert.deepEqual(Object.keys(merged), KNOWLEDGE_KEYS);
+  assert.deepEqual(Object.keys(merged), [...KNOWLEDGE_KEYS, "domains"]);
   assert.equal(DEFAULT_KNOWLEDGE.slots.length, before);
   assert.deepEqual(findNamesInLine(buildIndex(merged), "MI TRAGAPERRAS LOCAL").map((m) => m.name), ["Mi Tragaperras Local"]);
 });
@@ -58,4 +58,28 @@ test("loadKnowledge lee un JSON del usuario y explica los errores", () => {
   writeFileSync(bad, "{no es json");
   assert.throws(() => loadKnowledge(bad), /PANTALLA_KNOWLEDGE_FILE/);
   assert.throws(() => loadKnowledge(path.join(dir, "no-existe.json")), /PANTALLA_KNOWLEDGE_FILE/);
+});
+
+test("apps del usuario: cadena suelta = documents, objeto con categoría válida, categoría inventada se ignora", () => {
+  const merged = mergeKnowledge({ apps: ["Mi Hoja", { name: "Mi IDE", category: "coding" }, { name: "Mala", category: "inventada" }, { name: "x", category: "coding" }, 5] });
+  const added = merged.apps.slice(DEFAULT_KNOWLEDGE.apps.length);
+  assert.deepEqual(added, [{ name: "Mi Hoja", category: "documents" }, { name: "Mi IDE", category: "coding" }]);
+  assert.equal(buildIndex(merged).find((e) => e.name === "Mi IDE").category, "coding");
+});
+
+test("domains del usuario: solo categorías válidas, y mandan sobre el catálogo", () => {
+  const merged = mergeKnowledge({ domains: { "Mi-Casino.com": "casino", "malo.com": "inventada", "github.com": "documents" }, });
+  assert.deepEqual(merged.domains, { "mi-casino.com": "casino", "github.com": "documents" });
+  assert.deepEqual(domainCategories("www.mi-casino.com", merged.domains), ["casino"]);
+  assert.deepEqual(domainCategories("github.com", merged.domains), ["documents"]);
+  assert.deepEqual(domainCategories("github.com"), ["coding"]);
+});
+
+test("domainCategories reconoce subdominios, dominios con país y desconocidos", () => {
+  assert.deepEqual(domainCategories("www.stake.com"), ["casino", "sports_betting"]);
+  assert.deepEqual(domainCategories("stake.com.mx"), ["casino", "sports_betting"]);
+  assert.deepEqual(domainCategories("mail.google.com"), ["email"]);
+  assert.deepEqual(domainCategories("sub.github.com"), ["coding"]);
+  assert.deepEqual(domainCategories("bc.game"), ["casino"]);
+  assert.deepEqual(domainCategories("www.elpais.com"), []);
 });

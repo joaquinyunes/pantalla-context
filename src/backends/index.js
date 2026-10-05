@@ -68,7 +68,8 @@ export function createLocalBackend(config) {
     const backend = build(name, config);
     return { ...backend, analyze: singleFlight(backend.analyze) };
   });
-  return candidates.length === 1 ? candidates[0] : createAutoBackend(candidates);
+  const close = () => Promise.all(candidates.map((c) => c.close?.())).then(() => {});
+  return candidates.length === 1 ? { ...candidates[0], close } : { ...createAutoBackend(candidates), close };
 }
 
 // Lo que usa el visor: el analizador remoto si hay URL configurada; si no, el local.

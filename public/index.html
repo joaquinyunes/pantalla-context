@@ -13,6 +13,7 @@
       <h1>Pantalla Contexto</h1>
       <p class="muted">Comparte tu pantalla, elige una zona y obtén el contexto de lo que está pasando.</p>
       <p id="backendInfo" class="backend muted">Comprobando analizador…</p>
+      <p id="exportInfo" class="backend muted"></p>
     </div>
     <div class="top-actions">
       <button id="copyApiBtn" class="btn small" type="button" title="URL que cualquier IA o bot puede leer para saber el contexto actual">Copiar URL para otra IA</button>
@@ -25,11 +26,22 @@
   <main class="layout">
     <section class="stage" aria-label="Pantalla compartida">
       <div class="toolbar">
+        <label class="field inline">
+          <span>Compartir</span>
+          <select id="surfaceSelect" aria-label="Qué quieres compartir">
+            <option value="any">Lo que elija en el navegador</option>
+            <option value="browser">Una pestaña</option>
+            <option value="window">Una ventana</option>
+            <option value="monitor">Toda la pantalla</option>
+          </select>
+        </label>
         <button id="shareBtn" class="btn primary" type="button">Compartir pantalla</button>
+        <button id="switchBtn" class="btn" type="button" hidden title="Elige otra pantalla, ventana o pestaña sin perder tus ajustes">Cambiar de pantalla o pestaña</button>
         <button id="selectBtn" class="btn" type="button" disabled>Seleccionar zona</button>
         <button id="fullBtn" class="btn" type="button" disabled>Pantalla completa</button>
-        <span id="selectionInfo" class="muted" aria-live="polite"></span>
       </div>
+      <p id="sourceInfo" class="source muted" aria-live="polite"></p>
+      <p id="selectionInfo" class="source muted" aria-live="polite"></p>
 
       <div class="viewport">
         <div id="placeholder" class="placeholder">
@@ -95,8 +107,9 @@
       <article id="card" class="card" hidden>
         <div class="card-head">
           <span id="categoryBadge" class="badge"></span>
-          <span id="confidence" class="muted"></span>
+          <span id="verifyBadge" class="vbadge"></span>
         </div>
+        <p id="verifyText" class="verify muted"></p>
         <h2 id="cardTitle"></h2>
         <p id="cardSummary" class="summary"></p>
         <p id="cardChanges" class="changes" hidden></p>
@@ -113,6 +126,11 @@
           <summary>Texto leído en pantalla</summary>
           <pre id="screenText"></pre>
         </details>
+        <details id="whyBox" hidden>
+          <summary>¿Por qué lo digo?</summary>
+          <ul id="reasonsList"></ul>
+          <ul id="evidenceList" class="evidence"></ul>
+        </details>
         <details id="uncertainBox" hidden>
           <summary>No se pudo confirmar</summary>
           <ul id="uncertainList"></ul>
@@ -122,6 +140,12 @@
           <span id="meta" class="muted"></span>
         </div>
       </article>
+
+      <section id="activityBox" class="activity" hidden>
+        <h3>Actividad</h3>
+        <pre id="activityText"></pre>
+        <button id="copyActivityBtn" class="btn small" type="button">Copiar actividad para otra IA</button>
+      </section>
 
       <section id="historyBox" class="history" hidden>
         <h3>Historial</h3>

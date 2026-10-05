@@ -79,3 +79,26 @@ export function decideWatch({ busy, now, notBefore, lastEnd, minGapMs, heartbeat
   if (heartbeatMs > 0 && now - lastEnd >= heartbeatMs) return "analyze";
   return "idle";
 }
+
+// ---------- qué compartir ----------
+
+export const SURFACE_CHOICES = { any: null, browser: "browser", window: "window", monitor: "monitor" };
+
+// Opciones de getDisplayMedia. El navegador SIEMPRE muestra su propio selector (por privacidad no se puede saltar):
+// `displaySurface` solo es una sugerencia de cuál mostrar primero. `selfBrowserSurface: "exclude"` oculta esta misma
+// pestaña del selector (compartirla crearía un espejo infinito) y `surfaceSwitching` deja cambiar de pestaña sin reiniciar.
+export function displayMediaOptions(surface = "any") {
+  const video = { frameRate: { ideal: 2, max: 5 } };
+  if (SURFACE_CHOICES[surface]) video.displaySurface = SURFACE_CHOICES[surface];
+  return { video, audio: false, selfBrowserSurface: "exclude", surfaceSwitching: "include", monitorTypeSurfaces: "include", systemAudio: "exclude" };
+}
+
+const INTERNAL_LABEL = /^(?:web-contents-media-stream|window:|screen:|monitor:)/i;
+
+// Qué se está compartiendo, a partir de lo que informa la pista de vídeo.
+export function describeSource(settings = {}, label = "") {
+  const kind = ["browser", "window", "monitor"].includes(settings.displaySurface) ? settings.displaySurface : "unknown";
+  const name = label && !INTERNAL_LABEL.test(label) ? label : null;
+  const text = { browser: "una pestaña", window: "una ventana", monitor: "toda la pantalla", unknown: "una fuente" }[kind];
+  return { kind, name, text: name ? `${text} («${name}»)` : text };
+}

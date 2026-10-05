@@ -1,4 +1,7 @@
 import { readFileSync } from "node:fs";
+import { CATEGORIES } from "../modes.js";
+
+const CATEGORIES_SET = new Set(CATEGORIES);
 
 // Catálogo de nombres que el analizador sin modelo sabe reconocer en el texto de la pantalla.
 // No es exhaustivo: amplíalo con tu propio JSON (PANTALLA_KNOWLEDGE_FILE) con las mismas claves.
@@ -52,15 +55,57 @@ export const DEFAULT_KNOWLEDGE = {
     "EA Sports FC", "EA FC 25", "FIFA 23", "eFootball", "NBA 2K", "Madden NFL", "Mortal Kombat", "Street Fighter 6", "Tekken 8", "Hearthstone",
     "Among Us", "Fall Guys", "Hades", "Hollow Knight", "Zelda", "Mario Kart", "Super Smash Bros", "Pokemon", "Stardew Valley", "Terraria", "Chess.com",
   ],
-  platforms: ["Twitch", "Kick", "YouTube", "TikTok", "Facebook Gaming", "Netflix", "Disney+", "Prime Video", "HBO Max", "Spotify"],
+  platforms: ["Twitch", "Kick", "Facebook Gaming", "YouTube Gaming", "TikTok Live"],
+  // Aplicaciones con la actividad que suponen. Una cadena suelta (en tu JSON) se trata como «documents».
   apps: [
-    "Visual Studio Code", "Excel", "PowerPoint", "Google Docs", "Google Sheets", "Slack", "Notion", "Gmail", "Outlook", "Zoom", "Discord",
-    "GitHub", "Figma", "Photoshop", "Premiere Pro", "OBS Studio", "Telegram", "WhatsApp", "Terminal", "PowerShell",
+    ...["Visual Studio Code", "VS Code", "Visual Studio", "IntelliJ IDEA", "PyCharm", "WebStorm", "Android Studio", "Sublime Text", "Neovim", "Xcode", "Cursor"].map((name) => ({ name, category: "coding" })),
+    ...["Windows Terminal", "PowerShell", "Command Prompt", "iTerm2", "Konsole", "Alacritty"].map((name) => ({ name, category: "terminal" })),
+    ...["Excel", "Microsoft Excel", "Microsoft Word", "PowerPoint", "Google Docs", "Google Sheets", "Google Slides", "Notion", "Obsidian", "Figma", "Photoshop", "Illustrator", "Canva", "Premiere Pro", "DaVinci Resolve", "LibreOffice", "Keynote", "Acrobat", "Blender"].map((name) => ({ name, category: "documents" })),
+    ...["Gmail", "Outlook", "Thunderbird", "Proton Mail", "Yahoo Mail"].map((name) => ({ name, category: "email" })),
+    ...["Discord", "Slack", "WhatsApp", "Telegram", "Messenger", "Signal", "Skype"].map((name) => ({ name, category: "chat" })),
+    ...["Zoom", "Google Meet", "Microsoft Teams", "Webex", "Jitsi"].map((name) => ({ name, category: "meeting" })),
+    ...["OBS Studio", "Streamlabs"].map((name) => ({ name, category: "streaming" })),
+    ...["YouTube", "Netflix", "Disney+", "Prime Video", "HBO Max", "Spotify", "Vimeo", "Crunchyroll", "Apple Music"].map((name) => ({ name, category: "video_media" })),
+    ...["Instagram", "TikTok", "Twitter", "Facebook", "Reddit", "LinkedIn", "Pinterest"].map((name) => ({ name, category: "social" })),
+    ...["Google Chrome", "Mozilla Firefox", "Microsoft Edge", "Safari", "Brave"].map((name) => ({ name, category: "browsing" })),
   ],
   assets: ["BTC", "ETH", "SOL", "XRP", "BNB", "DOGE", "ADA", "USDT", "EUR/USD", "GBP/USD", "USD/JPY", "XAU/USD", "S&P 500", "NASDAQ", "Dow Jones", "TSLA", "AAPL", "NVDA"],
 };
 
 export const KNOWLEDGE_KEYS = Object.keys(DEFAULT_KNOWLEDGE);
+
+// Qué actividad suele haber detrás de un sitio web. Clave: el nombre principal del dominio («stake» para stake.com,
+// stake.bet...) o el host completo para subdominios («mail.google.com»). Si es ambiguo (casas con casino y apuestas),
+// se lista más de una categoría y la pantalla decide.
+export const DOMAIN_HINTS = {
+  stake: ["casino", "sports_betting"], roobet: ["casino"], duelbits: ["casino"], rollbit: ["casino"], "bc.game": ["casino"], "888casino": ["casino"], leovegas: ["casino", "sports_betting"],
+  bet365: ["sports_betting", "casino"], "1xbet": ["sports_betting", "casino"], betano: ["sports_betting", "casino"], codere: ["sports_betting", "casino"], bwin: ["sports_betting", "casino"],
+  williamhill: ["sports_betting"], draftkings: ["sports_betting"], fanduel: ["sports_betting"], caliente: ["sports_betting"], betway: ["sports_betting", "casino"], pinnacle: ["sports_betting"],
+  bovada: ["sports_betting", "casino"], unibet: ["sports_betting", "casino"], sportium: ["sports_betting"], luckia: ["sports_betting", "casino"], winamax: ["sports_betting"], betfair: ["sports_betting"],
+  betsson: ["sports_betting", "casino"], wplay: ["sports_betting"], rushbet: ["sports_betting"], betcris: ["sports_betting"],
+  twitch: ["streaming"], kick: ["streaming"],
+  youtube: ["video_media"], youtu: ["video_media"], netflix: ["video_media"], disneyplus: ["video_media"], primevideo: ["video_media"], hbomax: ["video_media"], vimeo: ["video_media"], crunchyroll: ["video_media"], spotify: ["video_media"],
+  github: ["coding"], gitlab: ["coding"], stackoverflow: ["coding"], npmjs: ["coding"], localhost: ["coding"], codepen: ["coding"], replit: ["coding"],
+  tradingview: ["trading"], binance: ["trading"], coinbase: ["trading"], kraken: ["trading"], bybit: ["trading"], investing: ["trading"],
+  "mail.google.com": ["email"], "outlook.live.com": ["email"], "outlook.office.com": ["email"], protonmail: ["email"],
+  "docs.google.com": ["documents"], "sheets.google.com": ["documents"], "drive.google.com": ["documents"], notion: ["documents"], figma: ["documents"], canva: ["documents"],
+  discord: ["chat"], "web.whatsapp.com": ["chat"], "web.telegram.org": ["chat"], "app.slack.com": ["chat"], messenger: ["chat"],
+  "meet.google.com": ["meeting"], zoom: ["meeting"], "teams.microsoft.com": ["meeting"], webex: ["meeting"],
+  instagram: ["social"], tiktok: ["social"], x: ["social"], twitter: ["social"], facebook: ["social"], reddit: ["social"], linkedin: ["social"],
+};
+
+// Categorías asociadas a un host («www.stake.com» -> ["casino", "sports_betting"]), o [] si no se conoce.
+// `extra` es el mapa propio del usuario (knowledge.domains): «mi-casino.com»: «casino».
+export function domainCategories(host, extra = {}) {
+  const h = host.toLowerCase().replace(/^www\./, "");
+  const own = extra[h] ?? extra[h.split(".").slice(-2).join(".")];
+  if (own) return [own].flat();
+  if (DOMAIN_HINTS[h]) return DOMAIN_HINTS[h];
+  const parts = h.split(".");
+  // «sub.stake.com» -> «stake»; «stake.com.mx» -> «stake»; «bc.game» se busca completo arriba.
+  for (let i = parts.length - 2; i >= 0; i--) if (DOMAIN_HINTS[parts[i]]) return DOMAIN_HINTS[parts[i]];
+  return [];
+}
 
 // Quita acentos, símbolos y mayúsculas: «Gonzo's Quest» y «GONZOS QUEST» pasan a ser iguales.
 export function normalizeText(text) {
@@ -73,12 +118,29 @@ export function normalizeText(text) {
     .trim();
 }
 
-// Une el catálogo por defecto con el del usuario. Ignora claves desconocidas y valores que no sean listas de textos.
+const VALID_APP_CATEGORIES = new Set(["coding", "terminal", "documents", "email", "chat", "meeting", "streaming", "video_media", "social", "browsing"]);
+
+// Une el catálogo por defecto con el del usuario. Ignora claves desconocidas y valores que no sean válidos.
+// `apps` admite cadenas (categoría «documents») u objetos { name, category }; `domains` es un mapa host -> categoría.
 export function mergeKnowledge(extra = {}) {
   const merged = Object.fromEntries(KNOWLEDGE_KEYS.map((key) => [key, [...DEFAULT_KNOWLEDGE[key]]]));
   for (const key of KNOWLEDGE_KEYS) {
     const list = extra?.[key];
-    if (Array.isArray(list)) merged[key].push(...list.filter((n) => typeof n === "string" && n.trim().length >= 2).map((n) => n.trim()));
+    if (!Array.isArray(list)) continue;
+    for (const item of list) {
+      if (key === "apps") {
+        const app = typeof item === "string" ? { name: item.trim(), category: "documents" } : { name: String(item?.name ?? "").trim(), category: item?.category };
+        if (app.name.length >= 2 && VALID_APP_CATEGORIES.has(app.category)) merged.apps.push(app);
+      } else if (typeof item === "string" && item.trim().length >= 2) {
+        merged[key].push(item.trim());
+      }
+    }
+  }
+  merged.domains = {};
+  if (extra?.domains && typeof extra.domains === "object" && !Array.isArray(extra.domains)) {
+    for (const [host, category] of Object.entries(extra.domains)) {
+      if (typeof host === "string" && CATEGORIES_SET.has(category)) merged.domains[host.toLowerCase()] = category;
+    }
   }
   return merged;
 }
@@ -114,12 +176,13 @@ export function buildIndex(knowledge) {
   const entries = [];
   const seen = new Set();
   for (const key of KNOWLEDGE_KEYS) {
-    for (const name of knowledge[key] ?? []) {
+    for (const item of knowledge[key] ?? []) {
+      const name = typeof item === "string" ? item : item.name;
       const norm = normalizeText(name);
       const id = `${key}:${norm}`;
       if (norm.length < 2 || seen.has(id)) continue;
       seen.add(id);
-      entries.push({ type: key, name, norm, words: norm.split(" ") });
+      entries.push({ type: key, name, norm, words: norm.split(" "), ...(typeof item === "object" ? { category: item.category } : {}) });
     }
   }
   return entries;

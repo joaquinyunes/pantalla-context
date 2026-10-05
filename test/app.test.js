@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { after, before, test } from "node:test";
 import { createApp } from "../src/app.js";
-import { HttpError } from "../src/validate.js";
+import { createTracker } from "../src/tracker.js";
+import { HttpError, normalizeResult } from "../src/validate.js";
 
 const IMG = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
 const CONTEXT = {
@@ -39,6 +40,7 @@ const post = (body, headers = {}) =>
 
 before(async () => {
   const app = createApp({
+    tracker: createTracker({ stableFrames: 1 }), // con una lectura basta: aquí se prueba el servidor, no la verificación
     backend: {
       info: async () => INFO,
       analyze: async (req) => {
@@ -81,7 +83,7 @@ test("no sirve rutas fuera de public/", async () => {
 
 test("POST /api/analyze devuelve el contexto y publica el último", async () => {
   calls = [];
-  nextOutcome = { refused: false, result: CONTEXT, model: "modelo-prueba", usage: { input_tokens: 10, output_tokens: 5 } };
+  nextOutcome = { refused: false, result: normalizeResult(CONTEXT), model: "modelo-prueba", usage: { input_tokens: 10, output_tokens: 5 } };
   const res = await post({ image: IMG, mode: "casino", note: "stake" });
   assert.equal(res.status, 200);
   const body = await res.json();
@@ -90,6 +92,8 @@ test("POST /api/analyze devuelve el contexto y publica el último", async () => 
   assert.equal(body.meta.usage.output_tokens, 5);
   assert.equal(calls[0].mode, "casino");
   assert.equal(calls[0].note, "stake");
+  assert.deepEqual([body.tracking.verified, body.tracking.state, body.tracking.confirmations, body.tracking.needed], [true, "verified", 1, 1]);
+  assert.equal(body.tracking.activity.category, "casino");
 
   const { latest } = await (await fetch(`${base}/api/latest`)).json();
   assert.equal(latest.title, "Jugando Sweet Bonanza");
@@ -98,7 +102,7 @@ test("POST /api/analyze devuelve el contexto y publica el último", async () => 
 });
 
 test("publish:false no cambia el último contexto publicado", async () => {
-  nextOutcome = { refused: false, result: { ...CONTEXT, title: "Otro" }, model: "m", usage: { input_tokens: 1, output_tokens: 1 } };
+  nextOutcome = { refused: false, result: normalizeResult({ ...CONTEXT, title: "Otro" }), model: "m", usage: { input_tokens: 1, output_tokens: 1 } };
   await post({ image: IMG, publish: false });
   const { latest } = await (await fetch(`${base}/api/latest`)).json();
   assert.equal(latest.title, "Jugando Sweet Bonanza");
@@ -109,6 +113,7 @@ test("una negativa del modelo se devuelve con refused:true y no se publica", asy
   const body = await (await post({ image: IMG })).json();
   assert.equal(body.refused, true);
   assert.equal(body.reason, "cyber");
+  assert.ok(!("tracking" in body));
   const { latest } = await (await fetch(`${base}/api/latest`)).json();
   assert.equal(latest.title, "Jugando Sweet Bonanza");
 });

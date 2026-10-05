@@ -59,7 +59,7 @@ test("visor -> analizador (con token) -> Ollama: la captura llega y vuelve el co
 
   const analyzer = launch("analyzer.js", { PANTALLA_BACKEND: "ollama", OLLAMA_HOST: ollama.url, PANTALLA_ANALYZER_PORT: String(analyzerPort), PANTALLA_ANALYZER_TOKEN: token });
   await analyzer.started;
-  const viewer = launch("server.js", { PORT: String(viewerPort), PANTALLA_ANALYZER_URL: `http://127.0.0.1:${analyzerPort}`, PANTALLA_ANALYZER_TOKEN: token });
+  const viewer = launch("server.js", { PORT: String(viewerPort), PANTALLA_ANALYZER_URL: `http://127.0.0.1:${analyzerPort}`, PANTALLA_ANALYZER_TOKEN: token, PANTALLA_STABLE_FRAMES: "1" });
   await viewer.started;
 
   try {
@@ -110,7 +110,7 @@ test("sin Ollama ni claves el visor usa el OCR integrado y analiza una captura r
   const deadUrl = dead.url;
   await dead.close();
   const port = await freePort();
-  const viewer = launch("server.js", { PORT: String(port), OLLAMA_HOST: deadUrl, PANTALLA_OCR_KEEP_ALIVE_S: "1" });
+  const viewer = launch("server.js", { PORT: String(port), OLLAMA_HOST: deadUrl, PANTALLA_OCR_KEEP_ALIVE_S: "1", PANTALLA_STABLE_FRAMES: "1" });
   await viewer.started;
   await new Promise((r) => setTimeout(r, 400));
   assert.match(viewer.output(), /Analizador: ocr · tesseract \(eng\) · free-local/);
@@ -138,7 +138,7 @@ test("sin Ollama ni claves el visor usa el OCR integrado y analiza una captura r
 test("el webhook configurado recibe cada contexto nuevo, firmado", async () => {
   const hook = await startMock(() => ({ json: { ok: true } }));
   const port = await freePort();
-  const viewer = launch("server.js", { PORT: String(port), PANTALLA_BACKEND: "ocr", PANTALLA_OCR_KEEP_ALIVE_S: "1", PANTALLA_WEBHOOK_URL: `${hook.url}/entrada`, PANTALLA_WEBHOOK_SECRET: "firma" });
+  const viewer = launch("server.js", { PORT: String(port), PANTALLA_BACKEND: "ocr", PANTALLA_OCR_KEEP_ALIVE_S: "1", PANTALLA_WEBHOOK_URL: `${hook.url}/entrada`, PANTALLA_WEBHOOK_SECRET: "firma", PANTALLA_STABLE_FRAMES: "1" });
   await viewer.started;
   try {
     const image = `data:image/jpeg;base64,${readFileSync(new URL("./fixtures/trading.jpg", import.meta.url)).toString("base64")}`;
@@ -159,4 +159,53 @@ test("una carpeta de conocimiento inválida detiene el arranque con un mensaje c
   viewer.started.catch(() => {});
   assert.equal(await exitOf(viewer.child), 1);
   assert.match(viewer.output(), /PANTALLA_KNOWLEDGE_FILE/);
+});
+
+test("por defecto solo se exporta lo VERIFICADO: con OCR real, la 1.ª lectura no sale y la 2.ª sí (API, actividad y webhook)", async () => {
+  const hook = await startMock(() => ({ json: { ok: true } }));
+  const port = await freePort();
+  const viewer = launch("server.js", { PORT: String(port), PANTALLA_BACKEND: "ocr", PANTALLA_OCR_KEEP_ALIVE_S: "1", PANTALLA_WEBHOOK_URL: hook.url });
+  await viewer.started;
+  const base = `http://127.0.0.1:${port}`;
+  const image = `data:image/jpeg;base64,${readFileSync(new URL("./fixtures/scenes/casino.jpg", import.meta.url)).toString("base64")}`;
+  const analyze = async () => (await fetch(`${base}/api/analyze`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ image, mode: "casino" }) })).json();
+
+  try {
+    assert.match(viewer.output(), /Exportación: solo lo verificado \(certeza ≥ 50 % y 2 lecturas seguidas\)/);
+    const first = await analyze();
+    assert.equal(first.context.title, "Casino: Sweet Bonanza (Pragmatic Play)");
+    assert.deepEqual([first.tracking.verified, first.tracking.state], [false, "confirming"]);
+    assert.equal((await (await fetch(`${base}/api/context`)).json()).latest, null, "una sola lectura no se exporta");
+    assert.match(await (await fetch(`${base}/api/context?format=text`)).text(), /Todavía no hay contexto verificado\. Candidato: «Casino: Sweet Bonanza/);
+    assert.equal(hook.requests.length, 0, "el webhook tampoco recibe lo no verificado");
+
+    const second = await analyze();
+    assert.deepEqual([second.tracking.verified, second.tracking.certainty >= 0.8], [true, true]);
+    const { latest, verified } = await (await fetch(`${base}/api/context`)).json();
+    assert.deepEqual([verified, latest.title, latest.verified, latest.confirmations], [true, "Casino: Sweet Bonanza (Pragmatic Play)", true, 2]);
+    assert.ok(latest.reasons.includes("Juego del catálogo: Sweet Bonanza"));
+    assert.match(latest.evidence.find((e) => e.label === "Saldo").text, /BALANCE €148\.30/);
+
+    const activity = await (await fetch(`${base}/api/session?format=text`)).text();
+    assert.match(activity, /^ACTIVIDAD\nAhora: Casino: Sweet Bonanza \(Pragmatic Play\) · desde hace \d+ s · verificado/);
+    assert.match(activity, /saldo €148\.30 \(inicio €148\.30, neto \+?€?0\.00\)|saldo €148\.30/);
+
+    for (let i = 0; i < 50 && hook.requests.length === 0; i++) await new Promise((r) => setTimeout(r, 100));
+    assert.equal(hook.requests.length, 1, "el webhook recibe solo la lectura verificada");
+    assert.equal(hook.requests[0].body.context.verified, true);
+    assert.deepEqual(hook.requests[0].body.events.map((e) => e.type), ["activity_started"]);
+    assert.match(hook.requests[0].body.prompt, /VERIFICADO/);
+  } finally {
+    await hook.close();
+  }
+});
+
+test("el token de la API protege la exportación del visor real", async () => {
+  const port = await freePort();
+  const viewer = launch("server.js", { PORT: String(port), PANTALLA_BACKEND: "ocr", PANTALLA_API_TOKEN: "un-secreto-de-prueba" });
+  await viewer.started;
+  const base = `http://127.0.0.1:${port}`;
+  assert.equal((await fetch(`${base}/api/context`)).status, 401);
+  assert.equal((await fetch(`${base}/api/context`, { headers: { authorization: "Bearer un-secreto-de-prueba" } })).status, 200);
+  assert.match(viewer.output(), /protegida con token/);
 });

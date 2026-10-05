@@ -1,9 +1,12 @@
-// Muestra el último contexto publicado. Parámetros: ?entities=0 oculta los datos clave.
+// Muestra el último contexto VERIFICADO. Parámetros: ?entities=0 oculta los datos clave, ?verified=all muestra también
+// lo no verificado (atenuado) y ?token=... si el servidor protege la API.
 const POLL_MS = 2000;
 const MAX_CHIPS = 4;
 
 const params = new URLSearchParams(location.search);
 const showEntities = params.get("entities") !== "0";
+const query = new URLSearchParams({ format: "json" });
+for (const key of ["verified", "token", "max_age"]) if (params.has(key)) query.set(key, params.get(key));
 const el = (id) => document.getElementById(id);
 
 let shownAt = null;
@@ -11,6 +14,7 @@ let shownAt = null;
 function render(latest) {
   el("card").hidden = !latest;
   if (!latest) return;
+  el("card").classList.toggle("unverified", latest.verified === false);
   el("activity").textContent = latest.activity;
   el("activity").hidden = !latest.activity;
   el("title").textContent = latest.title;
@@ -28,7 +32,7 @@ function render(latest) {
 
 async function poll() {
   try {
-    const { latest } = await (await fetch("/api/latest", { cache: "no-store" })).json();
+    const { latest } = await (await fetch(`/api/context?${query}`, { cache: "no-store" })).json();
     // Solo repintamos cuando hay un análisis nuevo, para no reiniciar la animación.
     if ((latest?.at ?? null) !== shownAt) {
       shownAt = latest?.at ?? null;

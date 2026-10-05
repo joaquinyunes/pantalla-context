@@ -20,23 +20,34 @@ test("initialize negocia la versión del protocolo y anuncia solo herramientas",
   assert.equal(unknown.id, 1);
 });
 
-test("ping y tools/list", async () => {
+test("ping y tools/list: dos herramientas de solo lectura", async () => {
   const handle = make();
   assert.deepEqual((await handle(rpc("ping"))).result, {});
   const { tools } = (await handle(rpc("tools/list"))).result;
   assert.deepEqual(tools, TOOLS);
-  assert.equal(tools[0].name, "get_screen_context");
-  assert.equal(tools[0].inputSchema.type, "object");
-  assert.equal(tools[0].annotations.readOnlyHint, true);
+  assert.deepEqual(tools.map((t) => t.name), ["get_screen_context", "get_screen_activity"]);
+  for (const tool of tools) {
+    assert.equal(tool.inputSchema.type, "object");
+    assert.equal(tool.inputSchema.additionalProperties, false);
+    assert.equal(tool.annotations.readOnlyHint, true);
+  }
+  assert.match(tools[0].description, /VERIFIED/);
+  assert.deepEqual(tools[0].inputSchema.properties.verified.enum, ["only", "any"]);
+  assert.ok(!("verified" in tools[1].inputSchema.properties), "la actividad no tiene modo «any»");
 });
 
-test("tools/call pasa formato e idioma (con valores por defecto) y devuelve el texto", async () => {
+test("tools/call pasa herramienta, formato, idioma y verificación (con valores por defecto) y devuelve el texto", async () => {
   const calls = [];
   const handle = make(async (args) => (calls.push(args), "EL CONTEXTO"));
   const byDefault = await handle(rpc("tools/call", { name: "get_screen_context" }));
   assert.deepEqual(byDefault.result, { content: [{ type: "text", text: "EL CONTEXTO" }], isError: false });
-  await handle(rpc("tools/call", { name: "get_screen_context", arguments: { format: "json", language: "en" } }));
-  assert.deepEqual(calls, [{ format: "text", language: "es" }, { format: "json", language: "en" }]);
+  await handle(rpc("tools/call", { name: "get_screen_context", arguments: { format: "json", language: "en", verified: "any" } }));
+  await handle(rpc("tools/call", { name: "get_screen_activity", arguments: { language: "en" } }));
+  assert.deepEqual(calls, [
+    { tool: "get_screen_context", format: "text", language: "es", verified: "only" },
+    { tool: "get_screen_context", format: "json", language: "en", verified: "any" },
+    { tool: "get_screen_activity", format: "text", language: "en", verified: "only" },
+  ]);
 });
 
 test("herramienta desconocida y argumentos inválidos son errores de parámetros (-32602)", async () => {
@@ -44,6 +55,8 @@ test("herramienta desconocida y argumentos inválidos son errores de parámetros
   assert.equal((await handle(rpc("tools/call", { name: "borrar_todo" }))).error.code, -32602);
   assert.equal((await handle(rpc("tools/call", { name: "get_screen_context", arguments: { format: "xml" } }))).error.code, -32602);
   assert.equal((await handle(rpc("tools/call", { name: "get_screen_context", arguments: { language: "fr" } }))).error.code, -32602);
+  assert.equal((await handle(rpc("tools/call", { name: "get_screen_context", arguments: { verified: "quizas" } }))).error.code, -32602);
+  assert.equal((await handle(rpc("tools/call", { name: "get_screen_activity", arguments: { verified: "any" } }))).error.code, -32602, "la actividad no admite verified");
 });
 
 test("si no se puede obtener el contexto, el fallo llega al modelo como resultado con isError", async () => {
@@ -69,9 +82,13 @@ test("mensajes que no son JSON-RPC 2.0 válidos dan -32600", async () => {
 });
 
 // Prueba con el ejecutable real: stdout solo puede llevar JSON-RPC, una línea por mensaje.
-test("mcp.js por stdio: stdout solo lleva JSON-RPC y obtiene el contexto del visor", async () => {
-  const viewer = await startMock((req) => (req.url.startsWith("/api/context") ? { text: "CONTEXTO DE PANTALLA\nTipo: Casino" } : { status: 404 }));
-  const child = spawn(process.execPath, ["mcp.js"], { cwd: new URL("..", import.meta.url).pathname, env: { PATH: process.env.PATH, PANTALLA_URL: viewer.url } });
+test("mcp.js por stdio: stdout solo lleva JSON-RPC y obtiene contexto y actividad del visor (con token si lo hay)", async () => {
+  const viewer = await startMock((req) => {
+    if (req.url.startsWith("/api/context")) return { text: "CONTEXTO DE PANTALLA\nTipo: Casino" };
+    if (req.url.startsWith("/api/session")) return { text: "ACTIVIDAD\nAhora: Casino" };
+    return { status: 404 };
+  });
+  const child = spawn(process.execPath, ["mcp.js"], { cwd: new URL("..", import.meta.url).pathname, env: { PATH: process.env.PATH, PANTALLA_URL: viewer.url, PANTALLA_API_TOKEN: "s3creto" } });
   let stderr = "";
   child.stderr.on("data", (d) => (stderr += d));
   const lines = [];
@@ -97,16 +114,63 @@ test("mcp.js por stdio: stdout solo lleva JSON-RPC y obtiene el contexto del vis
     assert.equal((await reply(1)).result.serverInfo.name, "pantalla-contexto");
     send({ jsonrpc: "2.0", method: "notifications/initialized" });
     send(rpc("tools/list", {}, 2));
-    assert.equal((await reply(2)).result.tools[0].name, "get_screen_context");
+    assert.deepEqual((await reply(2)).result.tools.map((t) => t.name), ["get_screen_context", "get_screen_activity"]);
     send(rpc("tools/call", { name: "get_screen_context", arguments: { language: "en" } }, 3));
-    const call = await reply(3);
-    assert.equal(call.result.content[0].text, "CONTEXTO DE PANTALLA\nTipo: Casino");
-    assert.match(viewer.requests.at(-1).path, /^\/api\/context\?format=text&lang=en$/);
+    assert.equal((await reply(3)).result.content[0].text, "CONTEXTO DE PANTALLA\nTipo: Casino");
+    assert.equal(viewer.requests.at(-1).path, "/api/context?format=text&lang=en&verified=true", "por defecto solo lo verificado");
+    assert.equal(viewer.requests.at(-1).headers.authorization, "Bearer s3creto");
+    send(rpc("tools/call", { name: "get_screen_context", arguments: { verified: "any" } }, 4));
+    await reply(4);
+    assert.match(viewer.requests.at(-1).path, /verified=all$/);
+    send(rpc("tools/call", { name: "get_screen_activity" }, 5));
+    assert.equal((await reply(5)).result.content[0].text, "ACTIVIDAD\nAhora: Casino");
+    assert.equal(viewer.requests.at(-1).path, "/api/session?format=text&lang=es&verified=true");
     send("esto no es json");
-    assert.equal((await reply(4)).error.code, -32700);
-    assert.equal(lines.length, 4, "la notificación no produjo respuesta");
+    assert.equal((await reply(6)).error.code, -32700);
+    assert.equal(lines.length, 6, "la notificación no produjo respuesta");
     assert.ok(lines.every((l) => JSON.parse(l).jsonrpc === "2.0"), "nada que no sea JSON-RPC en stdout");
     assert.match(stderr, /MCP listo/);
+  } finally {
+    child.kill();
+    await viewer.close();
+  }
+});
+
+test("mcp.js: sin nada verificado en formato json lo explica en texto, con el candidato", async () => {
+  const viewer = await startMock(() => ({ json: { latest: null, verified: false, age_seconds: null, candidate: { title: "Casino: X", category: "casino", certainty: 0.62, confirmations: 1, needed: 2 } } }));
+  const child = spawn(process.execPath, ["mcp.js"], { cwd: new URL("..", import.meta.url).pathname, env: { PATH: process.env.PATH, PANTALLA_URL: viewer.url } });
+  try {
+    const answer = await new Promise((resolve, reject) => {
+      let out = "";
+      child.stdout.on("data", (d) => {
+        out += d;
+        if (out.includes("\n")) resolve(JSON.parse(out));
+      });
+      setTimeout(() => reject(new Error("sin respuesta")), 8000).unref();
+      child.stdin.write(`${JSON.stringify(rpc("tools/call", { name: "get_screen_context", arguments: { format: "json" } }))}\n`);
+    });
+    assert.match(answer.result.content[0].text, /^Todavía no hay contexto verificado\. Candidato: «Casino: X» \(certeza 62 %/);
+  } finally {
+    child.kill();
+    await viewer.close();
+  }
+});
+
+test("mcp.js: un 401 del visor explica que falta el token", async () => {
+  const viewer = await startMock(() => ({ status: 401, json: { error: "unauthorized" } }));
+  const child = spawn(process.execPath, ["mcp.js"], { cwd: new URL("..", import.meta.url).pathname, env: { PATH: process.env.PATH, PANTALLA_URL: viewer.url } });
+  try {
+    const answer = await new Promise((resolve, reject) => {
+      let out = "";
+      child.stdout.on("data", (d) => {
+        out += d;
+        if (out.includes("\n")) resolve(JSON.parse(out));
+      });
+      setTimeout(() => reject(new Error("sin respuesta")), 8000).unref();
+      child.stdin.write(`${JSON.stringify(rpc("tools/call", { name: "get_screen_activity" }))}\n`);
+    });
+    assert.equal(answer.result.isError, true);
+    assert.match(answer.result.content[0].text, /PANTALLA_API_TOKEN/);
   } finally {
     child.kill();
     await viewer.close();
