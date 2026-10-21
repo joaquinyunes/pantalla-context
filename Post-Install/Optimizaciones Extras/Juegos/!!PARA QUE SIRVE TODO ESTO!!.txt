@@ -1,0 +1,7 @@
+Estas son utilidades para poder optimizar el rendimiento de los juegos, reducir el consumo de memoria, GPU, y aumentar los FPS.
+
+DLSS Enabler - Habilita la tecnologia DLSS en graficas NVIDIA incompatibiles. Es recomendando para juegos recientes y nuevos
+Lossless Scalling - Una herramienta que contiene multiples tecnologias de Inteligencia Artifical para aumentar los FPS
+Low Specs Experience - Un programa para reducir aun mas la calidad visual en un juego. Para que se vea PEOR y funcione MEJOR
+Razer Cortex - Utilidad para deshabilitar multiples servicios y programas de Windows a la hora de jugar. No es tan util si tenes un Windows optimizado
+3D Analyzer - Pensada para juegos antiguos, permite deshabilitar o emular diferentes modos de renderizado de DirectX y OpenGL. Bien configurado, aumenta demasiado el rendimiento en PCs antiguas

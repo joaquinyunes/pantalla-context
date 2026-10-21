@@ -1,0 +1,12 @@
+Estos son los instaladores de los navegadores mas utilizados hoy en dia.
+
+Puedes utilizar Chrome 87 si tienes una PC antigua, pero con una experiencia mas limitada.
+OptiChromium 119 si quieres una experiencia reciente pero optimizada.
+Y Supermium si tenes buenos componentes
+
+!! TE RECOMIENDO QUE USES NAVEGADORES BIEN OPTIMIZADOS !!
+!! NO USES NI OPERA, NI CHROME, NI EDGE POR MALA OPTIMIZACION !!
+
+¿Que significa que tenga (Win7)?
+- Que el programa funciona apartir de Windows 7. Hay navegadores nuevos que solo tienen compatibilidad con Windows 10
+Por eso, tambien si tiene (Win10) Significa que solo funciona en Windows 10 o superior

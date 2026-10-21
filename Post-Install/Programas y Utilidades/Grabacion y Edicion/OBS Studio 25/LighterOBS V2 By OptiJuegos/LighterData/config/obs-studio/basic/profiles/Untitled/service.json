@@ -1,0 +1,7 @@
+{
+    "settings": {
+        "key": "sk_us-west-2_2Gc60nlAgqUG_B26MrGvaK7A8EJRtcpMRIeDznqMs8F",
+        "server": "rtmps://fa723fc1b171.global-contribute.live-video.net/"
+    },
+    "type": "rtmp_custom"
+}

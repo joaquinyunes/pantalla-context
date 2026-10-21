@@ -1,0 +1,5 @@
+Estas son utilidades para limpiar espacio en el disco duro y particionarlo
+
+FolderSizes - Analiza todas las carpetas de tu PC y ordenarlas por las mas pesadas. Principalmente sirve para ahorrar espacio
+Limpiar Espacio - Es una utilidad que busca los archivos MAS PESADOS de la PC. Con el fin de tambien, ahorrar espacio
+MiniToolPartitionWizard - Programa para particionar el disco duro. Funciona mejor que el propio de Windows

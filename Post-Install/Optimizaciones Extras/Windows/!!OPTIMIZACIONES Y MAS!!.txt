@@ -1,0 +1,9 @@
+No es tan necesario aplicar estas optimizaciones si ya instalaste esta modificacion de Windows optimizada!
+
+Mi recomendacion principal, es que si tienes un procesador anterior a 2017 deshabilites las "Mitigaciones de CPU".
+Basicamente, esto aumenta hasta un 30% el rendimiento del CPU al hacerlo mas vulnerable a Meltdown y Spectre.
+Es bastante recomendado, ya que no afecta mucho esta vulnerabilidad hoy en dia
+
+Ademas si quieres, puedes aplicar multiples utilidades externas en el apartado de "Programas de Optimizacion"
+Mi recomendacion es que utilces de manera frecuente la "Chris Titus Tool". 
+Para eliminar problemas de optimizaciones frecuente en Windows

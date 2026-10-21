@@ -1,0 +1,4 @@
+﻿Si tienes problemas con la conexion a Internet o Video. (Por ejemplo, no te salen redes ni funciona el cable de ethernet)
+Es muy probable que te falte el controlador del mismo. Basicamente, esto se utiliza para poder comunicar los componentes de tu computadora, con el sistema
+
+Para poder solucionarlo, te recomiendo leer "!!LEEME Y PROBLEMAS!!.txt" y ver el "=TENGO UN PROBLEMA=" que explica detalladamente como arreglarlo

@@ -1,0 +1,5 @@
+Si necesitas utilizar la tienda de microsoft o utilizas alguna app de ella. No te recomiendo 
+desactivar Windows Update, ya que la store depende de este servicio para funcionar correctamente
+
+En todos los otros casos. Te recomiendo desactivar el servicio, ya que al hacerlo se reduce bastante
+el consumo de recursos y demas

@@ -1,0 +1,3 @@
+﻿La dependencia WebView suele ser requerida para bastantes aplicaciones como el inicio de sesion de Xbox.
+
+No recomendaria instalarla, ya que aumenta demasiado el consumo de ram y suele ser demasiado inutil. Solo usala si tienes estos problemas

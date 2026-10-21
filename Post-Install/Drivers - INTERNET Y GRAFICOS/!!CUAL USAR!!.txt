@@ -1,0 +1,8 @@
+Driver Booster no es tan recomendable debido a que suele instalar drivers genericos y no oficiales
+
+Mi recomendacion es que utilizes DriverIdentifier ya que te analiza directamente la ID del HardWare
+y te da los mejores drivers para eso
+
+Si obtienes bajo rendimiento en juegos, seguramente sea debido a que no tienes driver de video instalado
+Te recomiendo informarte mas acerca de esto investigando en internet ya que no es un tema dificil
+y te puede ayudar en mucho!

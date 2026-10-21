@@ -1,0 +1,7 @@
+Estas son utilidades para poder ver informacion del hardware, disco duro, procesador, memoria ram, entre otros.
+
+MSI Afterburner - Para ver la cantidad de FPS adentro de un JUEGO
+HW-Monitor - Observar la temperatura de los componentes
+Crystal Disk Info y Mark - Comprobar el estado de la unidad de almacenamiento y probar su rendimiento
+AIDA64, CPU-Z, GPUZ, HW-iNFO - Mirar todo el hardware, hacer pruebas de rendimiento y estres, entre otros
+Cinebench R15 - Benchmark del procesador y su puntaje en general

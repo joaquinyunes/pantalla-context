@@ -1,0 +1,67 @@
+﻿Si estas teniendo problemas de Drivers, Internet, Actualizaciones, Falta de Programas, Windows desactivado o más
+
+Dejamos una carpeta llamada "TENGO UN PROBLEMA"
+
+Esta te ayudara a resolver la mayoría de tus errores
+
+
+- PROBLEMAS DE INTERNET
+
+Si estas teniendo problemas de internet puede ser debido a que los drivers de este mismo todavía no están instalados
+Recomendamos usar un cable Ethernet para tener conexión o un USB Wi-Fi para tener conexión hasta que puedas instalar los drivers correspondientes usando el programa "Driver Booster" este se encuentra en la carpeta llamada "Drivers - INTERNET Y GRAFICOS"
+
+
+- DRIVERS
+Para solucionar los problemas de internet y de video reducido necesitas instalar los controladores necesarios para los mismos
+Estas son las opciones mas sencillas:
+
+Opcion 1 (FACIL):
+-Instalar Driver Booster ubicado en la carpeta "Drivers - INTERNET Y GRAFICOS"
+-Analizar los Drivers de tu computadora, instalarlos y reiniciar el Sistema
+(Suele instalar drivers genericos, no es tan recomendable)
+
+Opcion 2 (FACIL):
+- Instalar DriverIdentifier ubicado en la carpeta "Drivers - INTERNET Y GRAFICOS"
+- Analizar los Drivers de tu computadora, y ir al sitio de ellos
+- Automaticamente te da la ultima version y el Driver individual para que lo instales
+- Descargalo e instalalo
+(Unas de las mejores y mas sencillas)
+
+Opcion 3 (FACIL - MEDIO):
+Si continuas con Problemas puede que necesites buscar los drivers para tu periférico o componente en específico
+-Recomendamos buscar tu modelo de componente y al lado la palabra "Drivers" en Google para encontrar el más actualizado
+-En caso de tener problema con periféricos también buscar el modelo de tu periférico y al lado la palabra "Drivers" en Google
+-Tambien para esto. Puedes buscar el modelo de tu placa madre para encontrarlos de manera mas sencilla
+(Recomendable. Pero cuidado al instalar versiones antiguas!)
+
+Ejemplo: AMD Ryzen 5600G Drivers
+Ejemplo 2: Intel HD Graphics 630 Driver
+Ejemplo 3: Wi-Fi ASUS VivaBook Driver
+
+
+- ACTUALIZACIONES
+La versión de Windows que estas usando cuenta con actualizaciones, ya que es la LTSC, pero puede que esten desactivadas
+No recomendamos activarlas a no ser que sea realmente necesario, en caso de hacerlo haz lo siguiente
+
+-Ve a la carpeta llamada "Windows Update"
+-Abre el archivo llamado "Activar Windows Update" y sigue las instrucciones
+
+
+- ARCHIVOS ANTERIORES
+¿Te faltan programas que anteriormente tenias en tu PC? ¡es porque al instalar un nuevo Windows se ocultaron!
+
+Si no formateaste la unidad de almacenamiento al instalar el sistema. Comprueba si tienes la carpeta "Windows.Old"
+en la unidad "C:" o "D:". Alli se encuentra la instalacion de Windows anterior con todos los archivos
+
+
+- EXTRA
+Muchos de estos podrás instalarlos fácilmente sin entrar a internet desde esta carpeta de Post Install
+Puedes encontrar muchos de estos en las siguientes carpetas "Juegos y Programas" "Programas y Utilidades" "Antivirus" "Navegadores Web"
+
+Lo que más recomendamos es primero instalar el navegador que más quieras dentro de la carpeta "Navegadores Web" para así continuar con la búsqueda del resto
+
+
+- ACTIVACION
+Windows Desactivado
+La versión de Windows que estas usando está modificada, pero eso no quiere decir que sea pirata, debes activar este Windows de todas formas
+

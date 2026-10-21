@@ -1,0 +1,17 @@
+Te recomiendo instalar el "Instalar Dependencias Juegos.bat"
+
+Este instala los Visual C++, Net Framework Y DirectX necesarios para correr todos los juegos actuales
+Si no lo haces, es posible que tengas errores de DLL o 0xc000007b.
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+Al ejecutar el archivo de estar carpeta se instalara la Microsoft Store. 
+Esto podria reducir el rendimiento de tu sistema y consumir mas espacio.
+
+Yo personalmente no te recomendaria instalarla al menos que utilices ciertas apps 
+como minecraft bedrock, xbox y whatsapp.
+
+Si tienes fallos con la tienda, porfavor activa el servicio Windows Update ya que suele ser requerido por la Tienda
+Este esta deshabilitado para optimizar el rendimiento del Sistema. Para activarlo utiliza la carpeta "Windows Update"
+y activa el archivo correspondiente. Si tienes fallas, prueba actualizar la tienda utilizando el comando "wsreset -i" en cmd
+

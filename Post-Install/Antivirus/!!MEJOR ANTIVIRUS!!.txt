@@ -1,0 +1,8 @@
+El sistema operativo no trae Windows Defender ya que consume mucha ram y procesador en las pcs de gama muy baja
+
+Yo ya no utilizo antivirus, mi recomendacion es que cada archivo que analices lo pases por VirusTotal o tria.ge
+ya que lo analiza con multiples antivirus y te da el veredicto final.
+
+Si igualmente deseas instalar antivirus te recomiendo los siguientes: MalwareBytes, NOD32 (eset), Kaspersky
+
+NO USES AVG, AVAST, AVIRA O AVG YA QUE SON MAS VIRUS QUE ANTIVIRUS (segun mi experiencia)

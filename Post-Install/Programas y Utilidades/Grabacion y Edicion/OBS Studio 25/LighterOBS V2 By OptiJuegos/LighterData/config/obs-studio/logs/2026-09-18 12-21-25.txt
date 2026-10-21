@@ -1,0 +1,332 @@
+12:21:25.098: Command Line Arguments: --disable-updater --portable --multi
+12:21:25.098: CoInitializeEx succeeded: 0x00000001
+12:21:25.098: CPU Name: AMD Ryzen 5 3400G with Radeon Vega Graphics    
+12:21:25.098: CPU Speed: 3693MHz
+12:21:25.098: Physical Cores: 4, Logical Cores: 8
+12:21:25.098: Physical Memory: 16334MB Total, 13056MB Free (NOTE: 32bit programs cannot use more than 3gb)
+12:21:25.098: Windows Version: 10.0 Build 19044 (release: 2009; revision: 1288; 64-bit)
+12:21:25.098: Running as administrator: true
+12:21:25.098: Aero is Enabled (Aero is always on for windows 8 and above)
+12:21:25.098: Windows 10 Gaming Features:
+12:21:25.098: 	Game Bar: Off
+12:21:25.098: 	Game DVR: Off
+12:21:25.098: 	Game DVR Background Recording: Off
+12:21:25.099: Current Date/Time: 2026-09-18, 12:21:25
+12:21:25.099: Browser Hardware Acceleration: true
+12:21:25.099: Portable mode: true
+12:21:25.186: OBS 25.0.8 (32-bit, windows)
+12:21:25.186: ---------------------------------
+12:21:25.201: ---------------------------------
+12:21:25.201: audio settings reset:
+12:21:25.201: 	samples per sec: 44100
+12:21:25.201: 	speakers:        2
+12:21:25.202: ---------------------------------
+12:21:25.202: Initializing D3D11...
+12:21:25.202: Available Video Adapters: 
+12:21:25.205: 	Adapter 0: Radeon RX 570 Series
+12:21:25.205: 	  Dedicated VRAM: 3221225472
+12:21:25.205: 	  Shared VRAM:    1073676288
+12:21:25.205: 	  PCI ID:         1002:67df
+12:21:25.205: 	  Driver Version: 31.0.21925.1001
+12:21:25.205: 	  output 0: pos={0, 0}, size={1366, 768}, attached=true, refresh=60, name=19M35
+12:21:25.205: 	  output 1: pos={3286, 0}, size={1920, 1080}, attached=true, refresh=59, name=S24F350
+12:21:25.205: 	  output 2: pos={1366, 0}, size={1920, 1080}, attached=true, refresh=59, name=LF24T35
+12:21:25.208: Loading up D3D11 on adapter Radeon RX 570 Series (0)
+12:21:25.241: D3D11 loaded successfully, feature level used: b000
+12:21:25.241: DXGI increase maximum frame latency success
+12:21:25.241: D3D11 GPU priority setup success
+12:21:25.958: ---------------------------------
+12:21:25.958: video settings reset:
+12:21:25.958: 	base resolution:   1280x720
+12:21:25.958: 	output resolution: 640x360
+12:21:25.958: 	downscale filter:  Bilinear
+12:21:25.958: 	fps:               24000/1001
+12:21:25.958: 	format:            NV12
+12:21:25.958: 	YUV mode:          601/Partial
+12:21:25.958: NV12 texture support enabled
+12:21:25.959: Audio monitoring device:
+12:21:25.959: 	name: Por defecto
+12:21:25.959: 	id: default
+12:21:25.960: ---------------------------------
+12:21:25.963: [CoreAudio encoder]: CoreAudio AAC encoder not installed on the system or couldn't be loaded
+12:21:25.964: Failed to load 'en-US' text for module: 'decklink-ouput-ui.dll'
+12:21:26.144: [AMF] Version 2.7.0 loaded (Compiled: 1.4.14.0, Runtime: 1.4.31.0, Library: 1;4;31;0;23.19.25.01;202604231208;AMD-Radeon-Driver/drivers:c7feed5c762fc8dff3ce96226a7366f3167bcc98).
+12:21:26.195: [AMF] <Id: 1> Unable to set converter transfer characteristic, error AMF_NOT_FOUND (code 11)
+12:21:26.250: [AMF] <Id: 2> Unable to set converter transfer characteristic, error AMF_NOT_FOUND (code 11)
+12:21:26.271: [AMF] [Capability Manager] Testing Direct3D 11 Adapter 'Radeon RX 570 Series (VEN_1002/DEV_67df/SUB_50311849/REV_00ef)':
+12:21:26.271:   H264/AVC: Supported
+12:21:26.271:   H265/HEVC: Supported
+12:21:26.271: 
+12:21:26.300: [obs-browser]: Version 2.8.6
+12:21:26.942: Couldn't find VLC installation, VLC video source disabled
+12:21:26.949: A DeckLink iterator could not be created.  The DeckLink drivers may not be installed
+12:21:26.950: No blackmagic support
+12:21:26.954: ---------------------------------
+12:21:26.954:   Loaded Modules:
+12:21:26.954:     win-wasapi.dll
+12:21:26.954:     win-mf.dll
+12:21:26.954:     win-dshow.dll
+12:21:26.954:     win-decklink.dll
+12:21:26.954:     win-capture.dll
+12:21:26.954:     vlc-video.dll
+12:21:26.954:     text-freetype2.dll
+12:21:26.954:     rtmp-services.dll
+12:21:26.954:     obs-x264.dll
+12:21:26.954:     obs-vst.dll
+12:21:26.954:     obs-transitions.dll
+12:21:26.954:     obs-text.dll
+12:21:26.954:     obs-qsv11.dll
+12:21:26.954:     obs-outputs.dll
+12:21:26.954:     obs-filters.dll
+12:21:26.954:     obs-ffmpeg.dll
+12:21:26.954:     obs-browser.dll
+12:21:26.954:     image-source.dll
+12:21:26.954:     frontend-tools.dll
+12:21:26.954:     enc-amf.dll
+12:21:26.954:     decklink-ouput-ui.dll
+12:21:26.954:     coreaudio-encoder.dll
+12:21:26.954: ---------------------------------
+12:21:26.954: ==== Startup complete ===============================================
+12:21:26.955: Service '' not found
+12:21:26.960: All scene data cleared
+12:21:26.960: ------------------------------------------------
+12:21:26.966: [Media Source 'Vuelvo']: settings:
+12:21:26.966: 	input:                   C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/BE RIGHT BACK/BE RIGHT BACK.webm
+12:21:26.966: 	input_format:            (null)
+12:21:26.966: 	speed:                   100
+12:21:26.966: 	is_looping:              yes
+12:21:26.966: 	is_hw_decoding:          no
+12:21:26.966: 	is_clear_on_media_end:   yes
+12:21:26.966: 	restart_on_activate:     yes
+12:21:26.966: 	close_when_inactive:     yes
+12:21:26.966: [Media Source 'Timer (5 minutos)']: settings:
+12:21:26.966: 	input:                   C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/STARTING/TIMER 5.webm
+12:21:26.966: 	input_format:            (null)
+12:21:26.966: 	speed:                   100
+12:21:26.966: 	is_looping:              no
+12:21:26.966: 	is_hw_decoding:          no
+12:21:26.966: 	is_clear_on_media_end:   yes
+12:21:26.966: 	restart_on_activate:     yes
+12:21:26.966: 	close_when_inactive:     yes
+12:21:26.967: [Media Source 'Timer (10 minutos)']: settings:
+12:21:26.967: 	input:                   C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/STARTING/TIMER 10.webm
+12:21:26.967: 	input_format:            (null)
+12:21:26.967: 	speed:                   100
+12:21:26.967: 	is_looping:              no
+12:21:26.967: 	is_hw_decoding:          no
+12:21:26.967: 	is_clear_on_media_end:   yes
+12:21:26.967: 	restart_on_activate:     yes
+12:21:26.967: 	close_when_inactive:     yes
+12:21:26.967: [Media Source 'Timer (1 minuto)']: settings:
+12:21:26.967: 	input:                   C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/STARTING/TIMER 1.webm
+12:21:26.967: 	input_format:            (null)
+12:21:26.967: 	speed:                   100
+12:21:26.967: 	is_looping:              no
+12:21:26.967: 	is_hw_decoding:          no
+12:21:26.967: 	is_clear_on_media_end:   yes
+12:21:26.967: 	restart_on_activate:     yes
+12:21:26.967: 	close_when_inactive:     yes
+12:21:26.968: Failed to open file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/Prueba camara.jpg': No such file or directory
+12:21:26.968: gs_image_file_init_internal: Failed to load file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/Prueba camara.jpg'
+12:21:26.968: [image_source: 'Prueba camara.jpg'] failed to load texture 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/Prueba camara.jpg'
+12:21:26.968: [Media Source 'Overlay Charla2']: settings:
+12:21:26.968: 	input:                   C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUST CHATTING 2/JUST CHATTING 2.webm
+12:21:26.968: 	input_format:            (null)
+12:21:26.968: 	speed:                   100
+12:21:26.968: 	is_looping:              yes
+12:21:26.968: 	is_hw_decoding:          no
+12:21:26.968: 	is_clear_on_media_end:   yes
+12:21:26.968: 	restart_on_activate:     yes
+12:21:26.968: 	close_when_inactive:     yes
+12:21:26.969: [Media Source 'Overlay Charla1']: settings:
+12:21:26.969: 	input:                   C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUST CHATTING 1/JUST CHATTING.webm
+12:21:26.969: 	input_format:            (null)
+12:21:26.969: 	speed:                   100
+12:21:26.969: 	is_looping:              yes
+12:21:26.969: 	is_hw_decoding:          no
+12:21:26.969: 	is_clear_on_media_end:   yes
+12:21:26.969: 	restart_on_activate:     yes
+12:21:26.969: 	close_when_inactive:     yes
+12:21:26.969: Source ID 'color_source_v3' not found
+12:21:26.969: Failed to create source 'Origen de color'!
+12:21:26.969: [Media Source 'Marco1-1']: settings:
+12:21:26.969: 	input:                   C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM TOP SURFACE.webm
+12:21:26.969: 	input_format:            (null)
+12:21:26.969: 	speed:                   100
+12:21:26.969: 	is_looping:              yes
+12:21:26.969: 	is_hw_decoding:          no
+12:21:26.969: 	is_clear_on_media_end:   yes
+12:21:26.969: 	restart_on_activate:     yes
+12:21:26.969: 	close_when_inactive:     yes
+12:21:26.970: Failed to open file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUST CHATTING 1/Labels.png': No such file or directory
+12:21:26.970: gs_image_file_init_internal: Failed to load file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUST CHATTING 1/Labels.png'
+12:21:26.970: [image_source: 'Labels'] failed to load texture 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUST CHATTING 1/Labels.png'
+12:21:26.971: [Media Source 'Inicio']: settings:
+12:21:26.971: 	input:                   C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/STARTING/STARTING.webm
+12:21:26.971: 	input_format:            (null)
+12:21:26.971: 	speed:                   100
+12:21:26.971: 	is_looping:              yes
+12:21:26.971: 	is_hw_decoding:          no
+12:21:26.971: 	is_clear_on_media_end:   yes
+12:21:26.971: 	restart_on_activate:     yes
+12:21:26.971: 	close_when_inactive:     no
+12:21:26.971: MP: Failed to open media: 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/STARTING/STARTING.webm'
+12:21:26.972: [Media Source 'Fin']: settings:
+12:21:26.972: 	input:                   C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/ENDING/ENDING.webm
+12:21:26.972: 	input_format:            (null)
+12:21:26.972: 	speed:                   100
+12:21:26.972: 	is_looping:              yes
+12:21:26.972: 	is_hw_decoding:          no
+12:21:26.972: 	is_clear_on_media_end:   yes
+12:21:26.972: 	restart_on_activate:     yes
+12:21:26.972: 	close_when_inactive:     yes
+12:21:26.975: [window-capture: 'Capturar Juego'] update settings:
+12:21:26.975: 	executable: javaw.exe
+12:21:26.978: Switched to scene 'Juego'
+12:21:26.978: ------------------------------------------------
+12:21:26.978: Loaded scenes:
+12:21:26.978: - scene '----- ESCENAS PRINCIPALES -----':
+12:21:26.978: - scene 'Iniciando':
+12:21:26.978:     - source: 'Inicio' (ffmpeg_source)
+12:21:26.978:     - source: 'Timer (1 minuto)' (ffmpeg_source)
+12:21:26.979:     - source: 'Timer (5 minutos)' (ffmpeg_source)
+12:21:26.979:     - source: 'Timer (10 minutos)' (ffmpeg_source)
+12:21:26.979: - scene 'Charla (Solo CAM)':
+12:21:26.979:     - source: 'Cámara' (scene)
+12:21:26.979:     - source: 'Overlay Charla2' (ffmpeg_source)
+12:21:26.979:     - source: 'Labels' (image_source)
+12:21:26.979: - scene 'Charla (chat)':
+12:21:26.979:     - source: 'Cámara' (scene)
+12:21:26.979:     - source: 'Overlay Charla1' (ffmpeg_source)
+12:21:26.979:     - source: 'Labels' (image_source)
+12:21:26.979:     - source: 'Chat' (browser_source)
+12:21:26.979: - scene 'Juego':
+12:21:26.979:     - source: 'Origen de color' (color_source_v3)
+12:21:26.979:     - source: 'Capturar Juego' (window_capture)
+12:21:26.979:     - source: 'Marco 1' (group)
+12:21:26.979:         - source: 'Marco1-3' (image_source)
+12:21:26.979:         - source: 'Marco1-2' (image_source)
+12:21:26.979:         - source: 'Cámara' (scene)
+12:21:26.979:         - source: 'Marco1-1' (ffmpeg_source)
+12:21:26.979: - scene 'Ya vuelvo':
+12:21:26.979:     - source: 'Vuelvo' (ffmpeg_source)
+12:21:26.979: - scene 'Fin de Stream':
+12:21:26.979:     - source: 'Fin' (ffmpeg_source)
+12:21:26.979: - scene '----- ESCENAS DE APOYO -----':
+12:21:26.979: - scene 'Cámara':
+12:21:26.979:     - source: 'camara_principal' (dshow_input)
+12:21:26.979:     - source: 'Prueba camara.jpg' (image_source)
+12:21:26.979: ------------------------------------------------
+12:21:27.003: [Media Source 'Stinger (Stinger)']: settings:
+12:21:27.003: 	input:                   C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/transicion.webm
+12:21:27.003: 	input_format:            (null)
+12:21:27.003: 	speed:                   100
+12:21:27.003: 	is_looping:              no
+12:21:27.003: 	is_hw_decoding:          no
+12:21:27.003: 	is_clear_on_media_end:   yes
+12:21:27.003: 	restart_on_activate:     yes
+12:21:27.003: 	close_when_inactive:     no
+12:21:27.003: MP: Failed to open media: 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/transicion.webm'12:21:27.003: Failed to open file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM CIRCLE + TEXT.png': No such file or directory
+
+12:21:27.003: gs_image_file_init_internal: Failed to load file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM CIRCLE + TEXT.png'
+12:21:27.003: [image_source: 'Marco1-3'] failed to load texture 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM CIRCLE + TEXT.png'
+12:21:27.004: MP: Failed to open media: 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM TOP SURFACE.webm'
+12:21:27.962: Failed to open file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/MASK.png': No such file or directory
+12:21:27.962: gs_image_file_init_internal: Failed to load file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/MASK.png'
+12:21:27.962: [image_source: 'Marco1-2'] failed to load texture 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/MASK.png'
+12:21:28.316: User switched to scene 'Charla (chat)'
+12:21:28.338: MP: Failed to open media: 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUST CHATTING 1/JUST CHATTING.webm'
+12:21:28.564: obs-browser: Uncaught SyntaxError: Unexpected token ? (source: https://streamlabs.com/vite/assets/vendor.min-BkFo6s3m.js:13)
+12:21:28.564: obs-browser: Uncaught SyntaxError: Unexpected token ? (source: https://streamlabs.com/vite/assets/jquery-Dzmc7vtW.js:13)
+12:21:28.583: obs-browser: Uncaught SyntaxError: Unexpected token ? (source: https://streamlabs.com/vite/assets/vendor.min-BkFo6s3m.js:13)
+12:21:28.583: obs-browser: Uncaught SyntaxError: Unexpected token ? (source: https://streamlabs.com/vite/assets/chatbox-CLmKYG9f.js:1)
+12:21:28.825: obs-browser: Uncaught SyntaxError: Unexpected token ? (source: https://streamlabs.com/vite/assets/jquery-Dzmc7vtW.js:13)
+12:21:28.825: obs-browser: Uncaught SyntaxError: Unexpected token ? (source: https://streamlabs.com/vite/assets/vendor.min-BkFo6s3m.js:13)
+12:21:28.825: obs-browser: Uncaught SyntaxError: Unexpected token ? (source: https://streamlabs.com/vite/assets/jquery-Dzmc7vtW.js:13)
+12:21:33.428: User switched to scene 'Juego'
+12:21:33.467: Failed to open file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM CIRCLE + TEXT.png': No such file or directory
+12:21:33.467: gs_image_file_init_internal: Failed to load file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM CIRCLE + TEXT.png'
+12:21:33.467: [image_source: 'Marco1-3'] failed to load texture 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM CIRCLE + TEXT.png'
+12:21:33.468: MP: Failed to open media: 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM TOP SURFACE.webm'
+12:21:47.747: User added source 'Captura de pantalla' (monitor_capture) to scene 'Juego'
+12:22:08.878: [Media Source 'Marco1-1']: settings:
+12:22:08.878: 	input:                   C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM TOP SURFACE.webm
+12:22:08.878: 	input_format:            (null)
+12:22:08.878: 	speed:                   100
+12:22:08.878: 	is_looping:              yes
+12:22:08.878: 	is_hw_decoding:          no
+12:22:08.878: 	is_clear_on_media_end:   yes
+12:22:08.878: 	restart_on_activate:     yes
+12:22:08.878: 	close_when_inactive:     yes
+12:22:08.878: MP: Failed to open media: 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM TOP SURFACE.webm'
+12:22:14.717: Failed to open file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM CIRCLE + TEXT.png': No such file or directory
+12:22:14.717: gs_image_file_init_internal: Failed to load file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM CIRCLE + TEXT.png'
+12:22:14.717: [image_source: 'Marco1-3'] failed to load texture 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM CIRCLE + TEXT.png'
+12:22:14.717: MP: Failed to open media: 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/FACECAM TOP SURFACE.webm'
+12:22:15.426: Failed to open file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/MASK.png': No such file or directory
+12:22:15.426: gs_image_file_init_internal: Failed to load file 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/MASK.png'
+12:22:15.426: [image_source: 'Marco1-2'] failed to load texture 'C:/Users/Maikikii/Desktop/SAMMI Tutoriales/Maikikii/Overlay(Tokyo) - Maikikii-Scheme/Escenas/JUEGO/Marco1/MASK.png'
+12:22:21.788: ==== Shutting down ==================================================
+12:22:21.793: Switched to scene '(null)'
+12:22:21.803: All scene data cleared
+12:22:21.804: ------------------------------------------------
+12:22:21.935: Freeing OBS context data
+12:22:21.961: [Scripting] Total detached callbacks: 0
+12:22:21.967: == Profiler Results =============================
+12:22:21.967: run_program_init: 2192.92 ms
+12:22:21.967:  ┣OBSApp::AppInit: 17.593 ms
+12:22:21.967:  ┃ ┗OBSApp::InitLocale: 2.816 ms
+12:22:21.967:  ┗OBSApp::OBSInit: 2048.11 ms
+12:22:21.967:    ┣obs_startup: 1.09 ms
+12:22:21.967:    ┗OBSBasic::OBSInit: 1945.19 ms
+12:22:21.967:      ┣OBSBasic::InitBasicConfig: 0.574 ms
+12:22:21.967:      ┣OBSBasic::ResetAudio: 0.176 ms
+12:22:21.967:      ┣OBSBasic::ResetVideo: 757.687 ms
+12:22:21.967:      ┣OBSBasic::InitOBSCallbacks: 0.014 ms
+12:22:21.967:      ┣OBSBasic::InitHotkeys: 0.087 ms
+12:22:21.967:      ┣obs_load_all_modules: 994.589 ms
+12:22:21.967:      ┃ ┣obs_init_module(coreaudio-encoder.dll): 0.506 ms
+12:22:21.967:      ┃ ┣obs_init_module(decklink-ouput-ui.dll): 0.699 ms
+12:22:21.967:      ┃ ┣obs_init_module(enc-amf.dll): 305.141 ms
+12:22:21.967:      ┃ ┣obs_init_module(frontend-tools.dll): 5.798 ms
+12:22:21.967:      ┃ ┣obs_init_module(image-source.dll): 0.01 ms
+12:22:21.967:      ┃ ┣obs_init_module(obs-browser.dll): 0.562 ms
+12:22:21.967:      ┃ ┣obs_init_module(obs-ffmpeg.dll): 0.817 ms
+12:22:21.967:      ┃ ┃ ┗nvenc_check: 0.787 ms
+12:22:21.967:      ┃ ┣obs_init_module(obs-filters.dll): 0.023 ms
+12:22:21.967:      ┃ ┣obs_init_module(obs-outputs.dll): 0.009 ms
+12:22:21.967:      ┃ ┣obs_init_module(obs-qsv11.dll): 626.662 ms
+12:22:21.967:      ┃ ┣obs_init_module(obs-text.dll): 0.184 ms
+12:22:21.967:      ┃ ┣obs_init_module(obs-transitions.dll): 0.008 ms
+12:22:21.967:      ┃ ┣obs_init_module(obs-vst.dll): 0.002 ms
+12:22:21.967:      ┃ ┣obs_init_module(obs-x264.dll): 0.002 ms
+12:22:21.967:      ┃ ┣obs_init_module(rtmp-services.dll): 0.424 ms
+12:22:21.967:      ┃ ┣obs_init_module(text-freetype2.dll): 0.041 ms
+12:22:21.967:      ┃ ┣obs_init_module(vlc-video.dll): 0.053 ms
+12:22:21.967:      ┃ ┣obs_init_module(win-capture.dll): 3.981 ms
+12:22:21.967:      ┃ ┣obs_init_module(win-decklink.dll): 2.359 ms
+12:22:21.967:      ┃ ┣obs_init_module(win-dshow.dll): 1.312 ms
+12:22:21.968:      ┃ ┣obs_init_module(win-mf.dll): 0.001 ms
+12:22:21.968:      ┃ ┣obs_init_module(win-wasapi.dll): 0.009 ms
+12:22:21.968:      ┃ ┗reset_win32_symbol_paths: 0.214 ms
+12:22:21.968:      ┣OBSBasic::ResetOutputs: 0.359 ms
+12:22:21.968:      ┣OBSBasic::CreateHotkeys: 0.06 ms
+12:22:21.968:      ┣OBSBasic::InitService: 1.858 ms
+12:22:21.968:      ┣OBSBasic::InitPrimitives: 0.277 ms
+12:22:21.968:      ┗OBSBasic::Load: 31.139 ms
+12:22:21.968: obs_hotkey_thread(25 ms): min=0.003 ms, median=0.006 ms, max=2.048 ms, 99th percentile=0.043 ms, 100% below 25 ms
+12:22:21.968: audio_thread(Audio): min=0 ms, median=0.033 ms, max=0.191 ms, 99th percentile=0.059 ms
+12:22:21.968: obs_graphics_thread(41.7083 ms): min=0.071 ms, median=0.702 ms, max=10.964 ms, 99th percentile=1.693 ms, 100% below 41.708 ms
+12:22:21.968:  ┣tick_sources: min=0.001 ms, median=0.047 ms, max=1.548 ms, 99th percentile=0.323 ms
+12:22:21.968:  ┣output_frame: min=0.061 ms, median=0.18 ms, max=1.621 ms, 99th percentile=0.414 ms
+12:22:21.968:  ┃ ┗gs_context(video->graphics): min=0.061 ms, median=0.18 ms, max=1.619 ms, 99th percentile=0.414 ms
+12:22:21.968:  ┃   ┣render_video: min=0.009 ms, median=0.052 ms, max=1.046 ms, 99th percentile=0.095 ms
+12:22:21.968:  ┃   ┃ ┗render_main_texture: min=0.006 ms, median=0.049 ms, max=1.038 ms, 99th percentile=0.09 ms
+12:22:21.968:  ┃   ┗gs_flush: min=0.049 ms, median=0.125 ms, max=0.57 ms, 99th percentile=0.358 ms
+12:22:21.968:  ┗render_displays: min=0 ms, median=0.43 ms, max=10.685 ms, 99th percentile=1.182 ms
+12:22:21.968: =================================================
+12:22:21.968: == Profiler Time Between Calls ==================
+12:22:21.968: obs_hotkey_thread(25 ms): min=24.683 ms, median=25.018 ms, max=27.003 ms, 78.4984% within ±2% of 25 ms (0% lower, 21.5016% higher)
+12:22:21.968: obs_graphics_thread(41.7083 ms): min=38.497 ms, median=41.708 ms, max=45.367 ms, 99.8509% within ±2% of 41.708 ms (0.0745712% lower, 0.0745712% higher)
+12:22:21.968: =================================================
+12:22:21.976: Number of memory leaks: 0
