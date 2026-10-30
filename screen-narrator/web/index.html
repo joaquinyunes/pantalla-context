@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screen Narrator</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #16181d; --muted: #667085; --line: #e4e7ec;
+    --accent: #4f46e5; --accent-soft: #eef0ff; --hot: #d92d20; --hot-soft: #fef3f2; --ok: #12a150;
+    --c1: #4f46e5; --c2: #0ea5e9; --c3: #f59e0b; --c4: #10b981; --c5: #ec4899; --c0: #98a2b3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1015; --card: #171a21; --text: #eceff4; --muted: #8d97a8; --line: #272c37;
+      --accent: #8b87ff; --accent-soft: #23253f; --hot: #ff6b5e; --hot-soft: #2c1816; --ok: #3ddc84;
+      --c1: #8b87ff; --c2: #38bdf8; --c3: #fbbf24; --c4: #34d399; --c5: #f472b6; --c0: #667085;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 20px 16px 48px; }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  h1 { font-size: 18px; margin: 0; letter-spacing: -.01em; }
+  .status { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); }
+  .dot.live { animation: pulse 1.6s infinite; }
+  .dot.paused { background: var(--c3); }
+  .dot.off { background: var(--hot); }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 55%, transparent); }
+    100% { box-shadow: 0 0 0 9px transparent; } }
+  .spacer { flex: 1; }
+  button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--card);
+    color: var(--text); border-radius: 8px; padding: 6px 12px; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 8px; }
+  .now-activity { font-size: 22px; font-weight: 650; letter-spacing: -.02em; line-height: 1.25; }
+  .now-detail { color: var(--muted); margin-top: 4px; }
+  .now-moment { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); }
+  .now-moment.hot { background: var(--hot-soft); }
+  .meta { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 12px; color: var(--muted); }
+  .imp { display: inline-flex; gap: 3px; }
+  .imp i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
+  .imp i.on { background: var(--accent); }
+  .imp.hot i.on { background: var(--hot); }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tab { border-radius: 999px; padding: 5px 14px; font-size: 14px; }
+  .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .summary p { margin: 0 0 8px; } .summary ul { margin: 6px 0 0; padding-left: 20px; } .summary li { margin: 3px 0; }
+  .summary-foot { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 12px; color: var(--muted); }
+  .muted { color: var(--muted); }
+  .err { color: var(--hot); font-size: 13px; margin-top: 8px; }
+  .bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--line); margin: 18px 0 8px; }
+  .bar span { display: block; min-width: 3px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; }
+  .legend b { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 6px; }
+  .tl-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .tl-head label { font-size: 13px; color: var(--muted); display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .entry { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .entry:first-child { border-top: 0; }
+  .entry time { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; padding-top: 2px; }
+  .entry .act { font-weight: 600; }
+  .entry .det { color: var(--muted); }
+  .entry .mom { margin-top: 4px; }
+  .entry.hot { border-left: 3px solid var(--hot); padding-left: 10px; margin-left: -13px; }
+  .entry.hot .mom { color: var(--hot); font-weight: 600; }
+  .empty { color: var(--muted); padding: 8px 0; }
+  @media (max-width: 520px) { .entry { grid-template-columns: 1fr; gap: 2px; } .now-activity { font-size: 19px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Screen Narrator</h1>
+    <div class="status"><span class="dot" id="dot"></span><span id="status-text">Conectando…</span></div>
+    <div class="spacer"></div>
+    <button id="pause-btn" type="button">Pausar captura</button>
+  </header>
+
+  <section class="card" aria-live="polite">
+    <div class="label">Ahora</div>
+    <div id="now"><div class="empty">Esperando el primer análisis…</div></div>
+  </section>
+
+  <section class="card">
+    <div class="label">Resumen</div>
+    <div class="tabs" role="tablist" id="tabs">
+      <button class="tab" role="tab" data-min="1" aria-selected="true">Último minuto</button>
+      <button class="tab" role="tab" data-min="5" aria-selected="false">5 min</button>
+      <button class="tab" role="tab" data-min="15" aria-selected="false">15 min</button>
+      <button class="tab" role="tab" data-min="60" aria-selected="false">1 hora</button>
+      <button class="tab" role="tab" data-min="0" aria-selected="false">Toda la sesión</button>
+    </div>
+    <div class="summary" id="summary"><div class="empty">Sin datos todavía.</div></div>
+    <div class="summary-foot">
+      <span id="summary-meta"></span>
+      <button id="refresh-btn" type="button">Actualizar resumen</button>
+    </div>
+    <div class="err" id="summary-err" hidden></div>
+    <div class="bar" id="bar" hidden></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="card">
+    <div class="tl-head">
+      <div class="label" style="margin:0">Línea de tiempo</div>
+      <label><input type="checkbox" id="only-hot"> Solo destacados</label>
+    </div>
+    <div id="timeline"><div class="empty">Sin eventos todavía.</div></div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const COLORS = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)", "var(--c5)"];
+  const SUMMARY_EVERY_MS = 20000;
+  let state = null, minutes = 1, summaryTimer = null, summaryBusy = false;
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // Formato mínimo para el texto de la IA: **negrita** y listas con "- ".
+  function fmt(text) {
+    const out = []; let list = false;
+    for (const raw of String(text).split("\n")) {
+      const line = esc(raw.trim()).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      const li = line.match(/^[-*•]\s+(.*)/);
+      if (li) { if (!list) { out.push("<ul>"); list = true; } out.push(`<li>${li[1]}</li>`); continue; }
+      if (list) { out.push("</ul>"); list = false; }
+      if (line) out.push(`<p>${line}</p>`);
+    }
+    if (list) out.push("</ul>");
+    return out.join("");
+  }
+
+  const ago = (secs) => {
+    secs = Math.max(0, Math.round(secs));
+    if (secs < 5) return "ahora mismo";
+    if (secs < 60) return `hace ${secs} s`;
+    if (secs < 3600) return `hace ${Math.floor(secs / 60)} min`;
+    return `hace ${Math.floor(secs / 3600)} h`;
+  };
+
+  const impDots = (n) => `<span class="imp ${n >= 4 ? "hot" : ""}" title="Importancia ${n}/5">` +
+    [1, 2, 3, 4, 5].map((i) => `<i class="${i <= n ? "on" : ""}"></i>`).join("") + "</span>";
+
+  function setStatus(kind, text) {
+    $("dot").className = "dot " + kind;
+    $("status-text").textContent = text;
+  }
+
+  function renderNow(e) {
+    if (!e) return;
+    const hot = e.importancia >= 4;
+    $("now").innerHTML =
+      `<div class="now-activity">${esc(e.actividad)}</div>` +
+      `<div class="now-detail">${esc(e.detalle)}</div>` +
+      (e.momento_destacado ? `<div class="now-moment ${hot ? "hot" : ""}">${hot ? "🔥 " : ""}${esc(e.momento_destacado)}</div>` : "") +
+      `<div class="meta">${impDots(e.importancia)}<span>${esc(e.hora)} · ${ago(state.now - e.ts)}` +
+      (e.confianza ? ` · confianza ${esc(e.confianza)}` : "") + `</span></div>`;
+  }
+
+  function renderBreakdown(entries) {
+    const bar = $("bar"), legend = $("legend");
+    if (!entries.length) { bar.hidden = true; legend.innerHTML = ""; return; }
+    const counts = new Map();
+    for (const e of entries) counts.set(e.actividad, (counts.get(e.actividad) || 0) + 1);
+    const sorted = [...counts].sort((a, b) => b[1] - a[1]);
+    const top = sorted.slice(0, COLORS.length);
+    const rest = sorted.slice(COLORS.length).reduce((n, [, c]) => n + c, 0);
+    const parts = top.map(([name, c], i) => ({ name, c, color: COLORS[i] }));
+    if (rest) parts.push({ name: "Otros", c: rest, color: "var(--c0)" });
+    const total = entries.length;
+    bar.hidden = false;
+    bar.innerHTML = parts.map((p) => `<span style="width:${(p.c / total) * 100}%;background:${p.color}" title="${esc(p.name)}"></span>`).join("");
+    legend.innerHTML = parts.map((p) =>
+      `<span><b style="background:${p.color}"></b>${esc(p.name)} <span class="muted">${Math.round((p.c / total) * 100)}%</span></span>`).join("");
+  }
+
+  function renderTimeline(entries) {
+    const onlyHot = $("only-hot").checked;
+    const list = entries.filter((e) => !onlyHot || e.importancia >= 4).slice().reverse();
+    $("timeline").innerHTML = list.length ? list.map((e) =>
+      `<div class="entry ${e.importancia >= 4 ? "hot" : ""}"><time>${esc(e.hora)}</time><div>` +
+      `<div class="act">${esc(e.actividad)}</div><div class="det">${esc(e.detalle)}</div>` +
+      (e.momento_destacado ? `<div class="mom">${e.importancia >= 4 ? "🔥 " : ""}${esc(e.momento_destacado)}</div>` : "") +
+      `</div></div>`).join("") : `<div class="empty">${onlyHot ? "Aún no hay momentos destacados." : "Sin eventos todavía."}</div>`;
+  }
+
+  const inWindow = (entries) => minutes ? entries.filter((e) => e.ts >= state.now - minutes * 60) : entries;
+
+  async function pollState() {
+    try {
+      const r = await fetch("/api/state", { cache: "no-store" });
+      if (!r.ok) throw new Error(r.status);
+      const prevTotal = state ? state.total : -1;
+      state = await r.json();
+      if (state.paused) setStatus("paused", `Pausado · la pantalla NO se está capturando`);
+      else setStatus("live", `En vivo · ${state.provider} (${state.model})`);
+      $("pause-btn").textContent = state.paused ? "Reanudar captura" : "Pausar captura";
+      $("pause-btn").classList.toggle("primary", state.paused);
+      const last = state.entries[state.entries.length - 1];
+      if (last) renderNow(last);
+      renderTimeline(state.entries);
+      renderBreakdown(inWindow(state.entries));
+      if (prevTotal === 0 || (prevTotal === -1 && state.total > 0)) loadSummary();
+    } catch {
+      setStatus("off", "Sin conexión con el narrador (¿sigue corriendo narrator.py?)");
+    }
+  }
+
+  async function loadSummary(force = false) {
+    if (summaryBusy) return;
+    summaryBusy = true;
+    const el = $("summary"), err = $("summary-err");
+    const asked = minutes;
+    $("refresh-btn").disabled = true;
+    try {
+      const r = await fetch(`/api/summary?minutes=${asked}${force ? "&force=1" : ""}`, { cache: "no-store" });
+      const d = await r.json();
+      if (asked !== minutes) return; // el usuario cambió de pestaña mientras tanto
+      if (d.summary) {
+        el.innerHTML = fmt(d.summary);
+        $("summary-meta").textContent = `${d.count} análisis · generado ${ago(Date.now() / 1000 - d.generated_at)}`;
+      } else if (!d.count) {
+        el.innerHTML = `<div class="empty">No hay actividad registrada en este período.</div>`;
+        $("summary-meta").textContent = "";
+      }
+      err.hidden = !d.error;
+      err.textContent = d.error ? `No se pudo actualizar el resumen: ${d.error}` : "";
+    } catch {
+      err.hidden = false; err.textContent = "No se pudo contactar con el narrador.";
+    } finally {
+      summaryBusy = false; $("refresh-btn").disabled = false;
+    }
+  }
+
+  $("tabs").addEventListener("click", (ev) => {
+    const b = ev.target.closest(".tab"); if (!b) return;
+    minutes = Number(b.dataset.min);
+    document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", t === b));
+    $("summary").innerHTML = `<div class="empty">Generando resumen…</div>`;
+    if (state) renderBreakdown(inWindow(state.entries));
+    loadSummary();
+  });
+  $("refresh-btn").addEventListener("click", () => loadSummary(true));
+  $("only-hot").addEventListener("change", () => state && renderTimeline(state.entries));
+  $("pause-btn").addEventListener("click", async () => {
+    await fetch(state && state.paused ? "/api/resume" : "/api/pause", { method: "POST" });
+    pollState();
+  });
+
+  pollState();
+  setInterval(pollState, 2000);
+  summaryTimer = setInterval(() => state && state.total && !state.paused && loadSummary(), SUMMARY_EVERY_MS);
+  loadSummary();
+})();
+</script>
+</body>
+</html>
